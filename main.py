@@ -46,6 +46,8 @@ while True:
                 elif tile.recycler:
                     opp_recyclers.append(tile)
             else:
+                # todo: this might be grass in which case we can't actually do anything with it. neutral is a bit misleading
+                #       maybe we should split this into grassTiles and neutralTiles
                 neutral_tiles.append(tile)
 
     actions = []
