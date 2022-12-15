@@ -1,8 +1,9 @@
 import re
 import time
+import pyperclip as pc
 
 # This must be in the correct import order!
-classesToMerge = ['Tile', 'GameState', 'Parser']
+classesToMerge = ['Tile', 'GameState', 'Parser', 'ActionManager', 'Lockdown']
 
 def isRemoveableImportLine(line: str) -> bool:
     if "import" not in line:
@@ -37,6 +38,7 @@ def merge():
             print("Merging...")
             mergedFileData = re.sub("# Start Owned Imports[\s\S]*End Owned Imports", classImports, fileData)
             mergedFile.write(mergedFileData)
+            pc.copy(mergedFileData)
     print("Not a gram on her!")
 
 merge()
