@@ -7,8 +7,8 @@ from imports.Tile import Tile
 class GameState:
     mapWidth: int
     mapHeight: int
-    tiles: list[list[Tile]]
 
+    tiles: list[list[Tile]]
     myMats: int = None
     oppoMats: int = None
     myUnits: list[Tile] = field(default_factory=list)
@@ -21,6 +21,7 @@ class GameState:
     grassTiles: list[Tile] = field(default_factory=list)
 
     def resetForTurn(self):
+        self.tiles = []
         self.myMats = -1
         self.oppoMats = -1
         self.myUnits = []

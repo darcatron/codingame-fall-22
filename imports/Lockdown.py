@@ -1,4 +1,5 @@
 import sys
+import random
 
 from imports.ActionManager import ActionManager
 from imports.GameState import GameState
@@ -11,13 +12,20 @@ class Lockdown:
         bestRecyclerTiles = Lockdown.getBestRecyclerTiles(gameState)
         print('(DEBUG) best recycler locations: ' + str(bestRecyclerTiles), file=sys.stderr, flush=True)
         actionManager = ActionManager()
-        unitIndex = 0
-        for location in bestRecyclerTiles:
-            actionManager.enqueueMove(gameState.myUnits[unitIndex].units, gameState.myUnits[unitIndex], location)
-            unitIndex += 1
+        for index, location in enumerate(bestRecyclerTiles):
+            if location.canBuild:
+                print('(DEBUG) about to build at ' + str(location), file=sys.stderr, flush=True)
+                actionManager.enqueueBuild(location)
+            # todo: using 'index' here should be safe to start since we have at least 4 bots.
+            #  They could get got tho. Then we'll get an out-of-bounds exception
+            myBotTile = gameState.myUnits[index]
+            if myBotTile.x == location.x and myBotTile.y == location.y:
+                remainingOptions = [t for t in bestRecyclerTiles if t != location]
+                actionManager.enqueueMove(myBotTile.units, myBotTile, random.choice(remainingOptions))
+            else:
+                actionManager.enqueueMove(myBotTile.units, myBotTile, location)
         actionManager.debugActions()
         actionManager.doActions()
-
 
     @staticmethod
     def getBestRecyclerTiles(gameState: GameState) -> [Tile]:
