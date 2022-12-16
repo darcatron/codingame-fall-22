@@ -14,3 +14,6 @@ class Tile:
 
     def isGrass(self) -> bool:
         return self.scrapAmount == 0
+
+    def isSameLocation(self, other: 'Tile') -> bool:
+        return self.x == other.x and self.y == other.y

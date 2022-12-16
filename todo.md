@@ -13,19 +13,16 @@
 
 ### Implementation
   * determine tiles to put recycler
-    * LATER
-      * account for tiles that are owned by oppo
-      * account for fact that we can start on either side
-  * rush 3 bots to target tiles
-    * make sure bots aren't all going to the same tile
-    * start with just having the bots MOVE to TARGET
-    * LATER - try to ensure bots aren't taking the same path so we optimize the number of blue tiles
-    * LATER - depending on height, we may need fewer or more bots to travel
+    * account for fact that we can start on either side
+  * move bots to target tiles
+    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles
   * build recycler on target ASAP
-    * LATER - handle enemy bot destroying our bot before we can build a recycler
+    * handle enemy bot destroying our bot before we can build a recycler
+      * spawn more bots along the way
   * LATER
-    * we may want the lone bot to build recyclers on our side to get more mats
-    * we may want to stack bots near the lockdown line to prevent enemy bots from crossing before the recyclers are done 
+    * we want any remaining bots to capture tiles and build a recycler or two on our side to get more mats
+    * we may want to stack bots near the lockdown line to prevent enemy bots from crossing before the recyclers are done
+      * basically a really heavy front line
 
 ## General thoughts
   * Bots shouldn't stay on tiles they own if oppo bots are not close to those tiles
