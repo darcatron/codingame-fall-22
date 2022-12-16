@@ -4,10 +4,16 @@ from dataclasses import dataclass
 class Tile:
     x: int
     y: int
-    scrap_amount: int
+    scrapAmount: int
     owner: int
     units: int
     recycler: bool
-    can_build: bool
-    can_spawn: bool
-    in_range_of_recycler: bool
+    canBuild: bool
+    canSpawn: bool
+    inRangeOfRecycler: bool
+
+    def isGrass(self) -> bool:
+        return self.scrapAmount == 0
+
+    def isSameLocation(self, other: 'Tile') -> bool:
+        return self.x == other.x and self.y == other.y
