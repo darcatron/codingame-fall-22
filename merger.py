@@ -3,7 +3,7 @@ import time
 import pyperclip as pc
 
 # This must be in the correct import order!
-classesToMerge = ['LOG', 'Tile', 'GameState', 'Parser', 'ActionManager', 'Lockdown']
+classesToMerge = ['LOG', 'Tile', 'GameState', 'Parser', 'ActionManager', 'Lockdown', 'Economy']
 
 def isRemoveableImportLine(line: str) -> bool:
     if "import" not in line:

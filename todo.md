@@ -13,12 +13,11 @@
 
 ### Implementation
   * determine tiles to put recycler
-    * account for fact that we can start on either side
+    * Take into account scrap number differences between the tiles which could affect the optimal recycler placement
   * move bots to target tiles
-    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles
+    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles (this also helps avoid infinite loop problems with the auto-move option)
   * build recycler on target ASAP
     * handle enemy bot destroying our bot before we can build a recycler
-      * spawn more bots along the way
   * LATER
     * we want any remaining bots to capture tiles and build a recycler or two on our side to get more mats
     * we may want to stack bots near the lockdown line to prevent enemy bots from crossing before the recyclers are done
