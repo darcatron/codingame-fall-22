@@ -7,9 +7,19 @@ from imports.Parser import Parser
 
 gameState = Parser.parseMap()
 
+startedOnLeftSide = True  # Dynamically set in first turn
+turnNumber = 1
+
 # game loop
 while True:
     gameState.resetForTurn()
     Parser.parseMatterInventory(gameState)
     Parser.parseTurnInput(gameState)
-    Lockdown.takeActions(gameState)
+
+    if turnNumber == 1:
+        myUnitX = gameState.myUnits[0].x if len(gameState.myUnits) > 0 else 0
+        oppoUnitX = gameState.oppoUnits[0].x if len(gameState.oppoUnits) > 0 else 0
+        startedOnLeftSide = myUnitX < oppoUnitX
+
+    Lockdown.takeActions(gameState, startedOnLeftSide)
+    turnNumber += 1
