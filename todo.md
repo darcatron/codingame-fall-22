@@ -12,8 +12,11 @@
   * Move past the midline and build recyclers to prevent the enemy from leaving that space
 
 ### Implementation
+  * next big step is to have our bots handle lockdown success!
+    * Kill any enemy bots on our side, and also move to take back any enemy territory on our side
+    * Then, once they are gone we can just casually take over our entire side
   * determine tiles to put recycler
-    * Take into account scrap number differences between the tiles which could affect the optimal recycler placement
+    * Could technically go with a diagonal approach that cuts back towards our side to minimize how far we have to go
   * move bots to target tiles
     * try to ensure bots aren't taking the same path so we optimize the number of blue tiles (this also helps avoid infinite loop problems with the auto-move option)
   * build recycler on target ASAP
