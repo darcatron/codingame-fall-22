@@ -41,4 +41,4 @@ Phase 2
 - become legends
 
 ## Arena results
-12/19/22 08:45 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
+12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
