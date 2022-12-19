@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 
+ME = 1
+OPP = 0
+NONE = -1
+
 # todo: x and y is confusing, would be better to call them row and column
 @dataclass
 class Tile:
@@ -21,12 +25,6 @@ class Tile:
 
     def isAdjacent(self, other: 'Tile') -> bool:
         return abs(self.x - other.x) + abs(self.y - other.y) == 1
-
-    def __eq__(self, other):
-        """Overrides the default implementation"""
-        if isinstance(other, Tile):
-            return self.x == other.x and self.y == other.y and self.scrapAmount == other.scrapAmount and self.owner == other.owner and self.units == other.units and self.recycler == other.recycler and self.canBuild == other.canBuild and self.canSpawn == other.canSpawn and self.inRangeOfRecycler == other.inRangeOfRecycler
-        return NotImplemented
 
     def __hash__(self):
         return hash((self.x, self.y, self.scrapAmount, self.owner, self.units, self.recycler, self.canBuild, self.canSpawn, self.inRangeOfRecycler))

@@ -1,9 +1,6 @@
 from GameState import GameState
-from imports.Tile import Tile
+from imports.Tile import Tile, ME, OPP
 
-ME = 1
-OPP = 0
-NONE = -1
 
 class Parser:
     @staticmethod
