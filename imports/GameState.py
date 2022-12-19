@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+from typing import List
+
 from imports.Tile import Tile
 
 
@@ -8,17 +10,17 @@ class GameState:
     mapWidth: int
     mapHeight: int
 
-    tiles: list[list[Tile]]
+    tiles: List[List[Tile]]
     myMats: int = None
     oppoMats: int = None
-    myUnits: list[Tile] = field(default_factory=list)
-    oppoUnits: list[Tile] = field(default_factory=list)
-    myRecyclers: list[Tile] = field(default_factory=list)
-    oppoRecyclers: list[Tile] = field(default_factory=list)
-    oppoTiles: list[Tile] = field(default_factory=list)
-    myTiles: list[Tile] = field(default_factory=list)
-    neutralTiles: list[Tile] = field(default_factory=list)
-    grassTiles: list[Tile] = field(default_factory=list)
+    myUnits: List[Tile] = field(default_factory=list)
+    oppoUnits: List[Tile] = field(default_factory=list)
+    myRecyclers: List[Tile] = field(default_factory=list)
+    oppoRecyclers: List[Tile] = field(default_factory=list)
+    oppoTiles: List[Tile] = field(default_factory=list)
+    myTiles: List[Tile] = field(default_factory=list)
+    neutralTiles: List[Tile] = field(default_factory=list)
+    grassTiles: List[Tile] = field(default_factory=list)
 
     def resetForTurn(self):
         self.tiles = []

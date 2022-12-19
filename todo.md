@@ -12,13 +12,15 @@
   * Move past the midline and build recyclers to prevent the enemy from leaving that space
 
 ### Implementation
+  * next big step is to have our bots handle lockdown success!
+    * Kill any enemy bots on our side, and also move to take back any enemy territory on our side
+    * Then, once they are gone we can just casually take over our entire side
   * determine tiles to put recycler
-    * account for fact that we can start on either side
+    * Could technically go with a diagonal approach that cuts back towards our side to minimize how far we have to go
   * move bots to target tiles
-    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles
+    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles (this also helps avoid infinite loop problems with the auto-move option)
   * build recycler on target ASAP
     * handle enemy bot destroying our bot before we can build a recycler
-      * spawn more bots along the way
   * LATER
     * we want any remaining bots to capture tiles and build a recycler or two on our side to get more mats
     * we may want to stack bots near the lockdown line to prevent enemy bots from crossing before the recyclers are done
