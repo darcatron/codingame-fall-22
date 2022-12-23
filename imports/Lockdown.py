@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 
 from LOG import LOG
@@ -8,6 +9,7 @@ import numpy as np
 
 from imports.ActionManager import ActionManager
 from imports.GameState import GameState
+from imports.LockdownState import LockdownState
 from imports.Tile import Tile, ME
 from imports.MoveAction import MoveAction
 
@@ -19,58 +21,66 @@ class Lockdown:
         lockdownColumn = Lockdown.getLockdownColumn(gameState, startedOnLeftSide)
         bestRecyclerTiles = Lockdown.getTilesForRecyclersToBlockColumn(gameState.tiles, gameState.myRecyclers, lockdownColumn)
         actionManager = ActionManager()
-        botOptions = copy(gameState.myUnits)
-        matsRemaining = gameState.myMats  # todo track remaining funds in a common class for all actions, maybe the action manager?
-        numRecyclersLeftToBuild = len(bestRecyclerTiles)
-        botsForSpawning = []
+        lockdownState = LockdownState(lockdownColumn, bestRecyclerTiles, len(bestRecyclerTiles), gameState.myMats, copy(gameState.myUnits))
 
-        # First step, go build recyclers to block them out on less than half the map
-        LOG.debug(f"Best recycler tiles: {bestRecyclerTiles}")
-        for location in bestRecyclerTiles:
-            if location.canBuild and matsRemaining >= MATS_COST_TO_BUILD:
-                actionManager.enqueueBuild(location)
-                numRecyclersLeftToBuild -= 1
-                matsRemaining -= MATS_COST_TO_BUILD
-            if not botOptions:  # we're screwed
-                break
-            closestBot = Lockdown.findClosestTile(botOptions, location)
-            if closestBot is not None:
-                botOptions.remove(closestBot)
-                if closestBot.isSameLocation(location):
-                    # move off target location so we can build on it next turn
-                    # todo (optimization): this move can be smarter
-                    destinationTile = Lockdown.getAdjacentTileToMoveTo(gameState, location)
-                    if destinationTile:
-                        actionManager.enqueueMove(closestBot.units, closestBot, destinationTile)
-                elif location.owner is not ME:
-                    # We need to go convert the tile to be owned by us before we can build on it, go move there
-                    # todo this can sometimes cause us to move onto a different recycler build target location that is already owned by us, which can lead to an infinite loop of us getting on and then off that build location
-                    # instead, we should make sure we go around
-                    actionManager.enqueueMove(closestBot.units, closestBot, location)
-                    # While we're moving there, make our moving bots targets for more bots to spawn to help take out any enemy bots that are in the way
-                    botsForSpawning.append(closestBot)
+        Lockdown.tryToPlaceRecyclers(gameState, lockdownState, actionManager)
+        Lockdown.buildDefensiveBotWall(gameState, lockdownState, actionManager)
 
-        # Second step, after recyclers are built - reclaim enemy land on my side of the map
+        # After recyclers are built - reclaim enemy land on my side of the map
         if len(bestRecyclerTiles) == 0:
             moveActions = Lockdown.reclaimMySideOfMap(gameState, lockdownColumn, startedOnLeftSide)
             for moveAction in moveActions:
                 actionManager.enqueueMoveAction(moveAction)
-                # Don't waste our mats spawning on the wrong side of the map!
-                allowSpawning = moveAction.fromTile.x <= lockdownColumn if startedOnLeftSide else moveAction.fromTile.x >= lockdownColumn
-                if allowSpawning:
-                    # While we're moving there, make our moving bots targets for more bots to spawn to help take out any enemy bots that are in the way
-                    botsForSpawning.append(moveAction.fromTile)
-
-        # Spawn bots to reinforce the bots going to build my blocking recyclers
-        for myUnit in botsForSpawning:
-            if myUnit.canSpawn:
-                numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(matsRemaining, numRecyclersLeftToBuild)
-                if numSpawns > 0:
-                    actionManager.enqueueSpawn(numSpawns, myUnit)
-                    matsRemaining -= MATS_COST_TO_SPAWN * numSpawns
 
         actionManager.debugActions()
         actionManager.doActions()
+
+    @staticmethod
+    def tryToPlaceRecyclers(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager):
+        # First step, go build recyclers to block them out on part of the map
+        LOG.debug("Best recycler tiles: " + os.linesep.join([str(tile) for tile in lockdownState.bestRecyclerTiles]))
+        for buildLocation in lockdownState.bestRecyclerTiles:
+            if buildLocation.canBuild and lockdownState.matsRemaining >= MATS_COST_TO_BUILD:
+                actionManager.enqueueBuild(buildLocation)
+                lockdownState.numRecyclersLeftToBuild -= 1
+                lockdownState.matsRemaining -= MATS_COST_TO_BUILD
+
+                # protect from enemy crossover
+                # numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(matsRemaining, numRecyclersLeftToBuild)
+                # actionManager.enqueueSpawn(min(numSpawns, 3), Lockdown.findClosestTile(botOptions, buildLocation))
+            if not lockdownState.botOptions:  # we're screwed
+                break
+            closestBot = Lockdown.findClosestTile(lockdownState.botOptions, buildLocation)
+            if closestBot is not None:
+                if closestBot.isSameLocation(buildLocation):
+                    # move off target location so we can build on it next turn
+                    # todo (optimization): this move can be smarter
+                    destinationTile = Lockdown.getAdjacentTileToMoveTo(gameState, buildLocation)
+                    if destinationTile:
+                        actionManager.enqueueMove(closestBot.units, closestBot, destinationTile)
+                elif buildLocation.owner is not ME:  # we hit this if we don't have enough to build a recycler on an owned tile
+                    # We need to go convert the tile to be owned by us before we can build on it, go move there
+                    # todo this can sometimes cause us to move onto a different recycler build target location that is already owned by us, which can lead to an infinite loop of us getting on and then off that build location
+                    # instead, we should make sure we go around
+                    actionManager.enqueueMove(1, closestBot, buildLocation)
+                if closestBot.units == 1:
+                    lockdownState.botOptions.remove(closestBot)
+                else:
+                    closestBot.units -= 1
+
+    @staticmethod
+    def buildDefensiveBotWall(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager) -> None:
+        ownedTilesOnLockdownCol = [tile for tile in gameState.myTiles if tile.x == lockdownState.lockdownCol]
+        numTiles = len(ownedTilesOnLockdownCol)
+        numSpawns = int(Lockdown.getNumberOfSpawnActionsAvailable(lockdownState.matsRemaining,
+                                                                  lockdownState.numRecyclersLeftToBuild) / numTiles) if numTiles else 0
+        LOG.debug(f"spawns available={numSpawns * numTiles}")
+        for myTile in ownedTilesOnLockdownCol:
+            if myTile.canSpawn:
+                if numSpawns > 0:
+                    LOG.debug(f"Building wall: num={numSpawns} tile={myTile}")
+                    actionManager.enqueueSpawn(numSpawns, myTile)
+                    lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * numSpawns
 
     # Prioritizes taking enemy tiles back first, then goes for neutral tiles
     @staticmethod
@@ -95,9 +105,9 @@ class Lockdown:
 
         return moveActions
 
-    # todo this doesn't take into account grass tiles (or enemy bots) getting in the way
-    # I've noticed this will cause us to get in an infinite loop of moving directionally away from the targetTile since that's the shortest path (grass blocks us from going by the way the crow flies)
-    # Then we spawn where that bot used to be since it's the closest bot, then we'll repeat with the spawned bot next turn, etc.
+    # todo this doesn't take into account grass tiles, recyclers, or enemy bots getting in the way
+    #  I've noticed this will cause us to get in an infinite loop of moving directionally away from the targetTile since that's the shortest path (grass blocks us from going by the way the crow flies)
+    #  Then we spawn where that bot used to be since it's the closest bot, then we'll repeat with the spawned bot next turn, etc.
     @staticmethod
     def findClosestTile(tileOptions: List[Tile], targetTile: Tile) -> Optional[Tile]:
         if len(tileOptions) == 0:
@@ -167,12 +177,14 @@ class Lockdown:
     def getLockdownColumn(gameState: GameState, startedOnLeftSide: bool) -> int:
         # todo (optimization): this can be calculated once rather than per turn
         if startedOnLeftSide:
-            return int((gameState.mapWidth / 2)) if gameState.mapWidth % 2 == 0 else int(
-                (gameState.mapWidth / 2)) + 1
+            return int(gameState.mapWidth / 3)
+            # return int((gameState.mapWidth / 2)) if gameState.mapWidth % 2 == 0 else int(
+            #     (gameState.mapWidth / 2)) + 1
         else:
             # we started on the right side
-            return int((gameState.mapWidth / 2)) - 1 if gameState.mapWidth % 2 == 0 else int(
-                (gameState.mapWidth / 2))
+            # return int((gameState.mapWidth / 2)) - 1 if gameState.mapWidth % 2 == 0 else int(
+            #     (gameState.mapWidth / 2))
+            return int(gameState.mapWidth / 3) * 2
 
     @staticmethod
     def getTilesForRecyclersToBlockColumn(allTiles: List[List[Tile]], ourExistingRecyclersAtTurnStart: List[Tile], column: int) -> List[Tile]:

@@ -1,5 +1,6 @@
-import sys
+import os
 
+from imports.LOG import LOG
 from imports.Tile import Tile
 from imports.MoveAction import MoveAction
 
@@ -26,6 +27,6 @@ class ActionManager:
         self.actions = []
 
     def debugActions(self) -> None:
-        print('(DEBUG) Actions: ' + ';'.join(self.actions), file=sys.stderr, flush=True)
+        LOG.debug('Actions: ' + os.linesep.join(self.actions))
 
 
