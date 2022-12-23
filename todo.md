@@ -12,17 +12,19 @@
   * Move past the midline and build recyclers to prevent the enemy from leaving that space
 
 ### Implementation
-  * next big step is to have our bots handle lockdown success!
-    * Kill any enemy bots on our side, and also move to take back any enemy territory on our side
-    * Then, once they are gone we can just casually take over our entire side
+  * after blocking column success:
+    * Prioritize killing enemy bots on our side alongside taking over enemy tiles (right now we just take enemy tiles and then neutral tiles after)
   * determine tiles to put recycler
     * Could technically go with a diagonal approach that cuts back towards our side to minimize how far we have to go
+    * Sometimes the enemy causes a diagonal blockage that our lockdown algo doesn't detect so we still try to add a recycler even though they've already been cut off (and we might not be able to reach the target tile)
   * move bots to target tiles
-    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles (this also helps avoid infinite loop problems with the auto-move option)
+    * take into account grass (and maybe enemy bots?) that are in the way (an improvement to the findClosestTile method)
+    * don't cover up buildable recycler target locations
+    * try to ensure bots aren't taking the same path so we optimize the number of blue tiles
   * build recycler on target ASAP
     * handle enemy bot destroying our bot before we can build a recycler
   * LATER
-    * we want any remaining bots to capture tiles and build a recycler or two on our side to get more mats
+    * we want any remaining bots to capture tiles and build a recycler or two on our side to get more mats (tbh not sure we want recyclers on our side because they'll kill our land)
     * we may want to stack bots near the lockdown line to prevent enemy bots from crossing before the recyclers are done
       * basically a really heavy front line
 
@@ -37,3 +39,6 @@ Phase 2
 # Other Tasks
 - implement trash talking
 - become legends
+
+## Arena results
+12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
