@@ -34,12 +34,8 @@
 
 ### Matush Ideas
 #### TODO
-1. build recyclers - done
+1. build recyclers - needs more support to build
 2. capture and spawn defensive line on lockdown column
-3. ensure enemies don't cross the lockdown line. 
-4. keep 1 bot on the lockdown line 
-5. invade enemy territory and build recyclers wherever possible
-6. Move bots off tile if recycler is about to grassify it
 
 
 #### Variables

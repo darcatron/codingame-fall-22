@@ -31,9 +31,7 @@ class Lockdown:
         # After recyclers are built - reclaim enemy land on my side of the map
         if lockdownState.isLocked(gameState):
             LOG.debug("Reclaiming.")
-            moveActions = Lockdown.reclaimMySideOfMap(gameState, lockdownColumn)
-            for moveAction in moveActions:
-                actionManager.enqueueMoveAction(moveAction)
+            Lockdown.reclaimMySideOfMap(gameState, lockdownState, actionManager)
 
         actionManager.debugActions()
         actionManager.doActions()
@@ -153,11 +151,17 @@ class Lockdown:
 
     # Prioritizes taking enemy tiles back first, then goes for neutral tiles
     @staticmethod
-    def reclaimMySideOfMap(gameState: GameState, lockdownColumn: int) -> List[MoveAction]:
-        isTileOnMySide = lambda tile: tile.x < lockdownColumn if gameState.startedOnLeftSide else tile.x > lockdownColumn
+    def reclaimMySideOfMap(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager) -> List[MoveAction]:
+        isTileOnMySide = lambda tile: tile.x < lockdownState.lockdownCol if gameState.startedOnLeftSide else tile.x > lockdownState.lockdownCol
         enemyTilesOnMySide = list(filter(isTileOnMySide, gameState.oppoTiles))
         neutralTilesOnMySide = list(filter(isTileOnMySide, gameState.neutralTiles))
-        myBots = gameState.myUnits
+        myBots = list(filter(isTileOnMySide, gameState.myUnits))
+
+        if not myBots:
+            # todo (optimization): only need 1
+            myTilesOnMySide = list(filter(isTileOnMySide, gameState.myTiles))
+            actionManager.enqueueSpawn(1, myTilesOnMySide[0])
+            lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
 
         moveActions = []
         if len(enemyTilesOnMySide) > 0:
@@ -173,7 +177,8 @@ class Lockdown:
             LOG.debug(f"reclaiming={tileToMoveTo} with bot={myBot}")
             moveActions.append(MoveAction(myBot.units, myBot, tileToMoveTo))
 
-        return moveActions
+        for moveAction in moveActions:
+            actionManager.enqueueMoveAction(moveAction)
 
     # todo this doesn't take into account grass tiles, recyclers, or enemy bots getting in the way
     #  I've noticed this will cause us to get in an infinite loop of moving directionally away from the targetTile since that's the shortest path (grass blocks us from going by the way the crow flies)
@@ -247,16 +252,16 @@ class Lockdown:
     def getLockdownColumn(gameState: GameState) -> int:
         # todo (optimization): this can be calculated once rather than per turn
         if gameState.startedOnLeftSide:
-            return int(gameState.mapWidth / 2) - 1
-            # return int(gameState.mapWidth / 3)
+            # return int(gameState.mapWidth / 2) - 1
+            return int(gameState.mapWidth / 3)
             # return int((gameState.mapWidth / 2)) if gameState.mapWidth % 2 == 0 else int(
             #     (gameState.mapWidth / 2)) + 1
         else:
             # we started on the right side
             # return int((gameState.mapWidth / 2)) - 1 if gameState.mapWidth % 2 == 0 else int(
             #     (gameState.mapWidth / 2))
-            # return int(gameState.mapWidth / 3) * 2
-            return int(gameState.mapWidth / 2) + 1
+            return int(gameState.mapWidth / 3) * 2
+            # return int(gameState.mapWidth / 2) + 1
 
     @staticmethod
     def getTilesForRecyclersToBlockColumn(allTiles: List[List[Tile]], ourExistingRecyclersAtTurnStart: List[Tile], column: int) -> List[Tile]:
