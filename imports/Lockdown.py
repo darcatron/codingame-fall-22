@@ -120,34 +120,53 @@ class Lockdown:
                     LOG.debug(f"Moving bot={myBot} to avoid getting wrecked by recycler")
                     actionManager.enqueueMove(myBot.units, myBot, edgeTile)
                 elif myBot.units > 1:
+                    # todo: this can be improved and likely merged with the else branch.
+                    #  it's just setting up the bots to invade which is what the else branch does
                     actionManager.enqueueMove(myBot.units - 1, myBot, edgeTile)
-            elif myBot.x > lockdownState.lockdownCol:
-                if not enemyBotOptions:
-                    for botUnit in range(myBot.units):
-                        closestEmptyEnemyTile = Lockdown.findClosestTile(enemyTileOptions, myBot)
-                        actionManager.enqueueMove(1, myBot, closestEmptyEnemyTile)
-                        enemyTileOptions.remove(closestEmptyEnemyTile)
+            elif Lockdown.isPassedLockdownColumn(gameState.startedOnLeftSide, lockdownState.lockdownCol, myBot.x):
+                if enemyBotOptions:
+                    Lockdown.huntEnemyBots(lockdownState, actionManager, myBot, enemyBotOptions)
                 else:
-                    maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(lockdownState.matsRemaining,
-                                                                          lockdownState.numRecyclersLeftToBuild)
-                    closestEnemyBot = Lockdown.findClosestTile(enemyBotOptions, myBot)
-                    LOG.debug(f"using={myBot} to hunt enemy={closestEnemyBot}")
-                    actionManager.enqueueMove(myBot.units, myBot, closestEnemyBot)
-                    enemyBotOptions.remove(closestEnemyBot)
-                    if maxSpawns and closestEnemyBot.units >= myBot.units:
-                        minRequiredToSurvive = max(closestEnemyBot.units - myBot.units, 1)
-                        spawnAmount = min(minRequiredToSurvive, maxSpawns)
-                        LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemyBot}")
-                        actionManager.enqueueSpawn(spawnAmount, myBot)
-                        lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
-
+                    Lockdown.captureEnemyTiles(actionManager, myBot, enemyTileOptions)
         # todo:
         #  if there are extra mats
         #    build recyclers past the lockdown col.
         #    make sure they're not capturing the same tiles
 
+    @staticmethod
+    def isPassedLockdownColumn(startedOnLeftSide: bool, lockdownCol: int, colNum: int):
+        if startedOnLeftSide:
+            return colNum > lockdownCol
+        else:
+            return colNum < lockdownCol
 
-        return
+
+    @staticmethod
+    def huntEnemyBots(lockdownState: LockdownState, actionManager: ActionManager, myBot: Tile, enemyBotOptions: List[Tile]):
+        maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
+            lockdownState.matsRemaining,
+            lockdownState.numRecyclersLeftToBuild
+        )
+        closestEnemyBot = Lockdown.findClosestTile(enemyBotOptions, myBot)
+        LOG.debug(f"using={myBot} to hunt enemy={closestEnemyBot}")
+        actionManager.enqueueMove(myBot.units, myBot, closestEnemyBot)
+        enemyBotOptions.remove(closestEnemyBot)
+        if maxSpawns and closestEnemyBot.units >= myBot.units:
+            minRequiredToSurvive = max(closestEnemyBot.units - myBot.units, 1)
+            spawnAmount = min(minRequiredToSurvive, maxSpawns)
+            LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemyBot}")
+            actionManager.enqueueSpawn(spawnAmount, myBot)
+            lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+
+    @staticmethod
+    def captureEnemyTiles(actionManager: ActionManager, myBot: Tile, enemyTileOptions: List[Tile]):
+        for botUnit in range(myBot.units):
+            if not enemyTileOptions:
+                break
+            closestEmptyEnemyTile = Lockdown.findClosestTile(enemyTileOptions, myBot)
+            LOG.debug(f"using={myBot} to capture tile={closestEmptyEnemyTile}")
+            actionManager.enqueueMove(1, myBot, closestEmptyEnemyTile)
+            enemyTileOptions.remove(closestEmptyEnemyTile)
 
     # Prioritizes taking enemy tiles back first, then goes for neutral tiles
     @staticmethod

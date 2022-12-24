@@ -33,9 +33,15 @@
       * basically a really heavy front line
 
 ### Matush Ideas
-#### TODO
-1. build recyclers - needs more support to build
-2. capture and spawn defensive line on lockdown column
+#### TODO - CONTINUE HERE
+1. See how we're losing in the area (view last battles)
+   1. Getting killed by recyclers that grassify a square*
+   2. Getting many bots stuck in on an island*
+   3. Spawning bots on an island rather than reclaiming 
+   4. Not building recyclers on enemy side
+2. build recyclers - needs more support to build
+3. capture and spawn defensive line on lockdown column
+
 
 
 #### Variables
