@@ -34,18 +34,13 @@
 
 ### Matush Ideas
 #### TODO
-1. enemies build recyclers on their side quickly and then move out. This removes a lot of tiles from their side. It 
-  takes us a long time to get to past the midway point and build recyclers. We can get overtaken quickly. Maybe we 
-  can build the wall at width/3 (first third). This could give us enough time to prevent enemy progression.
-2. When bots start going towards the recycler targets, they can converge on a tile. Once they converge, we move them 
-  together rather than separately.
-  * Tests
-    * seed=3064518459982095000 | turn 2 has 3 clumps, turn 4 has 2 clumps
-3. assess spawning opportunities separately. Don't spawn until bots are near the lockdown point. Spawn shouldn't 
-     get in the way of building the recycler
-   * If a recycler is built, we need to ensure enemies don't cross the lockdown line. We can spawn and destroy enemies
-4. findClosestTile needs to account for grass and recycler blockers 
-   * this looks hard to do cause of the scipy lib we're using.  
+1. build recyclers - done
+2. capture and spawn defensive line on lockdown column
+3. ensure enemies don't cross the lockdown line. 
+4. keep 1 bot on the lockdown line 
+5. invade enemy territory and build recyclers wherever possible
+6. Move bots off tile if recycler is about to grassify it
+
 
 #### Variables
 * lockdown column
@@ -70,6 +65,8 @@
     * seed=3064518459982095000
       * In this game, we think we need recyclers on (8,1) (8,4) (8,6) (8,9) (8,10). We don't need it at (8,10) 
         because there's a grass tile next to (8,10) that naturally creates the lockdown
+findClosestTile needs to account for grass and recycler blockers 
+   * this looks hard to do cause of the scipy lib we're using. We'd need a graph rather than a k-d grid
 
 ## General thoughts
   * Bots shouldn't stay on tiles they own if oppo bots are not close to those tiles

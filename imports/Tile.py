@@ -28,3 +28,6 @@ class Tile:
 
     def __hash__(self):
         return hash((self.x, self.y, self.scrapAmount, self.owner, self.units, self.recycler, self.canBuild, self.canSpawn, self.inRangeOfRecycler))
+
+    def __repr__(self):
+        return f"({self.x}, {self.y})"
