@@ -22,5 +22,7 @@ while True:
         startedOnLeftSide = myUnitX < oppoUnitX
         gameState.startedOnLeftSide = startedOnLeftSide
 
-    Lockdown.takeActions(gameState)
+    lockdown = Lockdown(gameState)
+    lockdown.takeActions()
+
     turnNumber += 1
