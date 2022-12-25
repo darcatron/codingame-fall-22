@@ -92,6 +92,9 @@ class Lockdown:
                     actionManager.enqueueSpawn(spawnAmount, curLockdownTile)
                     # todo: it's easy to forget to decrement mats. move this into a method so it's easier to maintain state
                     lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+                    if curLockdownTile in lockdownState.botOptions:
+                        # these bots need to stay put and can't be used for other actions
+                        lockdownState.botOptions.remove(curLockdownTile)
             elif lockdownState.botOptions and Lockdown.shouldCaptureLockdownTile(curLockdownTile):
                 # todo: it's easy to forget to decrement the botOptions. move this into a method so it's easier to maintain state
                 closestBot = Lockdown.findClosestTile(lockdownState.botOptions, curLockdownTile)
@@ -135,7 +138,7 @@ class Lockdown:
                     actionManager.enqueueMove(myBot.units, myBot, edgeTile)
                     botsThatCanInvade.remove(myBot)
 
-        Lockdown.huntEnemyBotsNew(lockdownState, actionManager, botsThatCanInvade, enemyBotOptions, enemyTileOptions)
+        Lockdown.huntEnemyBots(lockdownState, actionManager, botsThatCanInvade, enemyBotOptions, enemyTileOptions)
         Lockdown.useRemainingMatsToEmpowerInvade(gameState, lockdownState, actionManager)
 
     @staticmethod
@@ -169,28 +172,7 @@ class Lockdown:
             return colNum < lockdownCol
 
     @staticmethod
-    def huntEnemyBots(lockdownState: LockdownState, actionManager: ActionManager, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile]):
-        for enemyBot in enemyBotOptions:
-            myClosestBot, distance = Lockdown.findClosestTileAndDistance(botsThatCanInvade, enemyBot)
-            if myClosestBot is None:
-                break
-            maxDistanceInOrderToSpawn = 3
-            maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
-                lockdownState.matsRemaining,
-                lockdownState.numRecyclersLeftToBuild
-            )
-            LOG.debug(f"using={myClosestBot} to hunt enemy={enemyBot} that is {distance} away")
-            actionManager.enqueueMove(myClosestBot.units, myClosestBot, enemyBot)
-            botsThatCanInvade.remove(myClosestBot)
-            if distance < maxDistanceInOrderToSpawn and maxSpawns and enemyBot.units >= myClosestBot.units:
-                minRequiredToSurvive = max(enemyBot.units - myClosestBot.units + 1, 1)
-                spawnAmount = min(minRequiredToSurvive, maxSpawns)
-                LOG.debug(f"spawning={spawnAmount} to hunt enemy={enemyBot}")
-                actionManager.enqueueSpawn(spawnAmount, myClosestBot)
-                lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
-
-    @staticmethod
-    def huntEnemyBotsNew(lockdownState: LockdownState, actionManager: ActionManager, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile], enemyTileOptions: List[Tile]):
+    def huntEnemyBots(lockdownState: LockdownState, actionManager: ActionManager, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile], enemyTileOptions: List[Tile]):
         if not enemyBotOptions:
             return
 
