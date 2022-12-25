@@ -12,6 +12,7 @@ class LockdownState:
     numRecyclersLeftToBuild: int
     matsRemaining: int
     botOptions: List[Tile]
+    botsOnRecyclerTile: List[Tile]
 
     def isLocked(self, gameState: GameState) -> bool:
         # todo: if adjacent tile is grass or recycler, it's in a lockdown

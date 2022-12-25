@@ -36,10 +36,13 @@
 #### TODO - CONTINUE HERE
 1. Better invade
    * Idea: focus on capturing tiles further out
-   * avoid spawned recyclers that capture the same tiles - try to spread them apart if possible/reasonable
+     * spawn bots on further out tiles rather than randomly
+     * hunt forward, not backwards whenever possible
+   * avoid builing recyclers that capture the same tiles - try to spread them apart if possible/reasonable
    * see what else might make sense. it currently builds very close to each other and doesn't work 
      * Tests
        * seed=-8678472773972118000
+       * seed=1344985553703064800
 2. Enemy getting past lockdown
    * Tests
       * seed=8899101356219145000 - enemy passes wall
@@ -52,8 +55,7 @@
 8. We don't need any bots to stay on the reclaim island cause we'll be able to spawn 1 and get everything easily
 
 Bug
-* Best recycler tiles: (6, 0) (6, 3) (6, 6) (6, 7) but should be (6, 1)... 
-  * seed=-9074218818329394000
+* N/A
 
 Crazy maps
 * Only one path to get to the other side. Bots end up destroying their own territory.
@@ -114,3 +116,4 @@ Phase 2
 12/24/22 14:07 (initial invade) - 1,327 / 1754
 12/24/22 17:27 (lots more added to invade) - 931 / 1753
 12/25/22 9:53 (no change) 879 / 1746
+12/25/22 ? (commited latest) ?
