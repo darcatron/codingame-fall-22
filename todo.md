@@ -36,23 +36,13 @@
 #### TODO - CONTINUE HERE
 1. Better invade
    * Idea: focus on capturing tiles further out
-     * spawn bots on further out tiles rather than randomly
+     * spawn bots on further out tiles rather than randomly. Also spawn more than 1 to claim more land
      * hunt forward, not backwards whenever possible
-   * avoid builing recyclers that capture the same tiles - try to spread them apart if possible/reasonable
-   * see what else might make sense. it currently builds very close to each other and doesn't work 
-     * Tests
-       * seed=-8678472773972118000
-       * seed=1344985553703064800
-2. Enemy getting past lockdown
-   * Tests
-      * seed=8899101356219145000 - enemy passes wall
-3. if adjacent tile is grass or recycler, it's in a lockdown (LockdownState#L17). We don't need to spawn a defense 
-   bot on tiles that are next to grass or recyclers either
-4. See how we're losing in the area (view last battles)
-5. Getting killed by recyclers that grassify a square 
-6. Getting many bots stuck in on an island 
-7. Spawning bots on an island rather than reclaiming
-8. We don't need any bots to stay on the reclaim island cause we'll be able to spawn 1 and get everything easily
+   * building recyclers strategically on enemy side - reduces # of tiles they can capture
+2. if adjacent tile to lockdown tile is grass or recycler, it's in a lockdown (LockdownState#L17). We don't need to 
+   spawn a defense bot on tiles that are next to grass or recyclers either
+3. Getting killed by recyclers that grassify a square 
+4. Getting many bots stuck on an island/Spawning excessive bots on an island
 
 Bug
 * N/A
@@ -62,11 +52,8 @@ Crazy maps
   * seed=-7202217520983007000
 
 
-
 #### Variables
 * lockdown column
-* bot wall spawn distribution
-* recycler build locations in enemy territory
 * enemy bot hunting distance minimum
 * myBotsAdvantageBuffer
 
