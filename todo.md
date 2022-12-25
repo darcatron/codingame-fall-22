@@ -34,19 +34,44 @@
 
 ### Matush Ideas
 #### TODO - CONTINUE HERE
-1. See how we're losing in the area (view last battles)
-   1. Getting killed by recyclers that grassify a square*
-   2. Getting many bots stuck in on an island*
-   3. Spawning bots on an island rather than reclaiming 
-   4. Not building recyclers on enemy side
-2. build recyclers - needs more support to build
-3. capture and spawn defensive line on lockdown column
+1. Better invade
+   * Idea: focus on capturing tiles further out
+   * avoid spawned recyclers that capture the same tiles - try to spread them apart if possible/reasonable
+   * see what else might make sense. it currently builds very close to each other and doesn't work 
+     * Tests
+       * seed=-8678472773972118000
+2. Enemy getting past lockdown
+   * Tests
+      * seed=8899101356219145000 - enemy passes wall
+3. if adjacent tile is grass or recycler, it's in a lockdown (LockdownState#L17). We don't need to spawn a defense 
+   bot on tiles that are next to grass or recyclers either
+4. See how we're losing in the area (view last battles)
+5. Getting killed by recyclers that grassify a square 
+6. Getting many bots stuck in on an island 
+7. Spawning bots on an island rather than reclaiming
+8. We don't need any bots to stay on the reclaim island cause we'll be able to spawn 1 and get everything easily
+
+Bug
+* Best recycler tiles: (6, 0) (6, 3) (6, 6) (6, 7) but should be (6, 1)... 
+  * seed=-9074218818329394000
+
+Crazy maps
+* Only one path to get to the other side. Bots end up destroying their own territory.
+  * seed=-7202217520983007000
 
 
 
 #### Variables
 * lockdown column
 * bot wall spawn distribution
+* recycler build locations in enemy territory
+* enemy bot hunting distance minimum
+* myBotsAdvantageBuffer
+
+Game constraints: 
+12 ≤ width ≤ 24
+6 ≤ height ≤ 12
+
 
 #### Later
 * Bots can get stuck between recyclers and grass. We should exclude stuck bots from any actions. 
@@ -86,3 +111,6 @@ Phase 2
 12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
 12/19/22 14:54 (initial reclaim) - PROMOTED to Silver League 
 12/23/22 14:23 (no changes) - 1,589 / 1,746
+12/24/22 14:07 (initial invade) - 1,327 / 1754
+12/24/22 17:27 (lots more added to invade) - 931 / 1753
+12/25/22 9:53 (no change) 879 / 1746

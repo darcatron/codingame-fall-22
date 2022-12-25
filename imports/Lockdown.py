@@ -1,16 +1,17 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from LOG import LOG
 
 from copy import copy
 from scipy import spatial
 import numpy as np
+import random
 
 from imports.ActionManager import ActionManager
 from imports.GameState import GameState
 from imports.LockdownState import LockdownState
-from imports.Tile import Tile, ME
+from imports.Tile import Tile, ME, OPP
 from imports.MoveAction import MoveAction
 
 from Economy import MATS_COST_TO_BUILD, MATS_COST_TO_SPAWN, MATS_INCOME_PER_TURN
@@ -24,16 +25,18 @@ class Lockdown:
         lockdownState = LockdownState(lockdownColumn, bestRecyclerTiles, len(bestRecyclerTiles), gameState.myMats, copy(gameState.myUnits))
 
         # todo: once the code works, in a separate commit move these args into self.args and remove the static methods
+        LOG.debug(f"{lockdownState.matsRemaining} mats remaining at start")
         Lockdown.tryToPlaceRecyclers(gameState, lockdownState, actionManager)
+        LOG.debug(f"{lockdownState.matsRemaining} mats remaining after placing recyclers")
         Lockdown.buildDefensiveBotWall(gameState, lockdownState, actionManager)
+        LOG.debug(f"{lockdownState.matsRemaining} mats remaining after wall")
         Lockdown.invade(gameState, lockdownState, actionManager)
-
+        LOG.debug(f"{lockdownState.matsRemaining} mats remaining after invade")
         # After recyclers are built - reclaim enemy land on my side of the map
         if lockdownState.isLocked(gameState):
             LOG.debug("Reclaiming.")
             Lockdown.reclaimMySideOfMap(gameState, lockdownState, actionManager)
 
-        actionManager.debugActions()
         actionManager.doActions()
 
     @staticmethod
@@ -45,93 +48,145 @@ class Lockdown:
                 actionManager.enqueueBuild(buildLocation)
                 lockdownState.numRecyclersLeftToBuild -= 1
                 lockdownState.matsRemaining -= MATS_COST_TO_BUILD
-
-                # protect from enemy crossover
-                # numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(matsRemaining, numRecyclersLeftToBuild)
-                # actionManager.enqueueSpawn(min(numSpawns, 3), Lockdown.findClosestTile(botOptions, buildLocation))
             if not lockdownState.botOptions:  # we're screwed
                 break
             closestBot = Lockdown.findClosestTile(lockdownState.botOptions, buildLocation)
             if closestBot is not None:
+                movedBot = False
                 if closestBot.isSameLocation(buildLocation):
                     # move off target location so we can build on it next turn
-                    # todo (optimization): this move can be smarter
-                    destinationTile = Lockdown.getAdjacentTileToMoveTo(gameState, buildLocation)
-                    if destinationTile:
-                        actionManager.enqueueMove(closestBot.units, closestBot, destinationTile)
+                    LOG.debug(f"moving bot={closestBot} away from desired recycler location")
+                    actionManager.enqueueMove(closestBot.units, closestBot, Lockdown.getEdgeTile(gameState, closestBot))
+                    movedBot = True
                 elif buildLocation.owner is not ME:  # we hit this if we don't have enough to build a recycler on an owned tile
                     # We need to go convert the tile to be owned by us before we can build on it, go move there
                     # todo this can sometimes cause us to move onto a different recycler build target location that is already owned by us, which can lead to an infinite loop of us getting on and then off that build location
                     # instead, we should make sure we go around
+                    LOG.debug(f"moving {closestBot} to {buildLocation} to capture desired recycler location")
                     actionManager.enqueueMove(1, closestBot, buildLocation)
-                if closestBot.units == 1:
-                    lockdownState.botOptions.remove(closestBot)
-                else:
-                    closestBot.units -= 1
+                    movedBot = True
+
+                if movedBot:
+                    if closestBot.units == 1:
+                        lockdownState.botOptions.remove(closestBot)
+                    else:
+                        closestBot.units -= 1
 
     @staticmethod
     def buildDefensiveBotWall(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager) -> None:
-        # todo: for each lockdown col
-        ## if i own it, make sure there's at least 1 bot on it, spawn if not
-        ## if i don't own it, send the closest botOption to it
-
-        # todo: for larger maps, we'll likely need to prefer spawning wherever there are more enemy bots
         for row in gameState.tiles:
             curLockdownTile = row[lockdownState.lockdownCol]
-            if curLockdownTile.canSpawn and curLockdownTile.units == 0:
-                actionManager.enqueueSpawn(1, curLockdownTile)
-                # todo: it's easy to forget to decrement mats. move this into a method so it's easier to maintain state
-                lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
-            elif lockdownState.botOptions and not curLockdownTile.owner == ME and not curLockdownTile.recycler and not curLockdownTile.isGrass():
+            if curLockdownTile in lockdownState.bestRecyclerTiles:
+                # we already have other logic moving bots to capture the recycler tiles
+                continue
+            elif curLockdownTile.canSpawn:
+                if curLockdownTile.inRangeOfRecycler and curLockdownTile.scrapAmount == 1:
+                    # don't wanna build on tiles that are about to be grassified
+                    continue
+
+                tileInFrontOfCurLockdownTile = gameState.tiles[curLockdownTile.y][curLockdownTile.x + 1 if gameState.startedOnLeftSide else curLockdownTile.x - 1]
+                if tileInFrontOfCurLockdownTile.owner == OPP and tileInFrontOfCurLockdownTile.units > 0:
+                    additionalRequiredUnits = max(tileInFrontOfCurLockdownTile.units - curLockdownTile.units + 1, 0)
+                    if additionalRequiredUnits == 0:
+                        continue
+                    maxSpawnActions = Lockdown.getNumberOfSpawnActionsAvailable(lockdownState.matsRemaining, lockdownState.numRecyclersLeftToBuild)
+                    spawnAmount = min(additionalRequiredUnits, maxSpawnActions)
+                    LOG.debug(f"Spawning {spawnAmount} to hold lockdown tile {curLockdownTile}")
+                    actionManager.enqueueSpawn(spawnAmount, curLockdownTile)
+                    # todo: it's easy to forget to decrement mats. move this into a method so it's easier to maintain state
+                    lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+            elif lockdownState.botOptions and Lockdown.shouldCaptureLockdownTile(curLockdownTile):
                 # todo: it's easy to forget to decrement the botOptions. move this into a method so it's easier to maintain state
-                LOG.debug(f"Trying to capture tile in lockdown col={curLockdownTile}")
                 closestBot = Lockdown.findClosestTile(lockdownState.botOptions, curLockdownTile)
+                LOG.debug(f"Moving {closestBot} to capture lockdown tile {curLockdownTile}")
                 actionManager.enqueueMove(1, closestBot, curLockdownTile)
                 if closestBot.units == 1:
                     lockdownState.botOptions.remove(closestBot)
                 else:
                     closestBot.units -= 1
 
-        # todo: start old code
-        # ownedTilesOnLockdownCol = [tile for tile in gameState.myTiles if tile.x == lockdownState.lockdownCol]
-        # numTiles = len(ownedTilesOnLockdownCol)
-        # numSpawns = int(Lockdown.getNumberOfSpawnActionsAvailable(lockdownState.matsRemaining,
-        #                                                           lockdownState.numRecyclersLeftToBuild) / numTiles) if numTiles else 0
-        # LOG.debug(f"spawns available={numSpawns * numTiles}")
-        # for myTile in ownedTilesOnLockdownCol:
-        #     if myTile.canSpawn:
-        #         if numSpawns > 0:
-        #             LOG.debug(f"Building wall: num={numSpawns} tile={myTile}")
-        #             actionManager.enqueueSpawn(numSpawns, myTile)
-        #             lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * numSpawns
-        # todo: end old code
+    @staticmethod
+    def shouldCaptureLockdownTile(lockdownTile: Tile) -> bool:
+        return not lockdownTile.owner == ME and not lockdownTile.recycler and not lockdownTile.isGrass()
 
     @staticmethod
     def invade(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager) -> None:
-        LOG.debug(f"{len(lockdownState.botOptions)} bot options left with to invade")
+        # todo: break up this method
+        botsThatCanInvade = [myBot for myBot in lockdownState.botOptions if myBot.x == lockdownState.lockdownCol or
+                             Lockdown.isPassedLockdownColumn(gameState.startedOnLeftSide, lockdownState.lockdownCol,
+                                                             myBot.x)]
+        LOG.debug(f"{len(botsThatCanInvade)} bot options left with to invade")
         LOG.debug(f"{lockdownState.matsRemaining} mats left with to invade")
         enemyBotOptions = copy(gameState.oppoUnits)
         enemyTileOptions = [tile for tile in copy(gameState.oppoTiles) if tile.units == 0 and not tile.recycler]
 
-        for myBot in lockdownState.botOptions:
-            edgeTile = gameState.tiles[myBot.y][-1] if gameState.startedOnLeftSide else gameState.tiles[myBot.y][0]
+        if lockdownState.isLocked(gameState) and not botsThatCanInvade:
+            LOG.debug("Locked but no invading bots.")
+            numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(lockdownState.matsRemaining,
+                                                                  lockdownState.numRecyclersLeftToBuild)
+            counter = 0
+            for _ in range(min(numSpawns, len(enemyTileOptions))):
+                myTileClosestToEnemyTile = Lockdown.findClosestTile(gameState.myTiles, enemyTileOptions[counter])
+                LOG.debug(f"no invading bots. spawning 1 at={myTileClosestToEnemyTile}")
+                actionManager.enqueueSpawn(1, myTileClosestToEnemyTile)
+                lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
+
+        for myBot in botsThatCanInvade:
+            edgeTile = Lockdown.getEdgeTile(gameState, myBot)
             if myBot.x == lockdownState.lockdownCol:
                 if myBot.scrapAmount == 1:
                     LOG.debug(f"Moving bot={myBot} to avoid getting wrecked by recycler")
                     actionManager.enqueueMove(myBot.units, myBot, edgeTile)
-                elif myBot.units > 1:
-                    # todo: this can be improved and likely merged with the else branch.
-                    #  it's just setting up the bots to invade which is what the else branch does
-                    actionManager.enqueueMove(myBot.units - 1, myBot, edgeTile)
-            elif Lockdown.isPassedLockdownColumn(gameState.startedOnLeftSide, lockdownState.lockdownCol, myBot.x):
-                if enemyBotOptions:
-                    Lockdown.huntEnemyBots(lockdownState, actionManager, myBot, enemyBotOptions)
-                else:
-                    Lockdown.captureEnemyTiles(actionManager, myBot, enemyTileOptions)
-        # todo:
-        #  if there are extra mats
-        #    build recyclers past the lockdown col.
-        #    make sure they're not capturing the same tiles
+                    botsThatCanInvade.remove(myBot)
+                elif myBot.units > 0:
+                    LOG.debug(f"Invading with bot={myBot}")
+                    actionManager.enqueueMove(myBot.units, myBot, edgeTile)
+                    botsThatCanInvade.remove(myBot)
+
+        if botsThatCanInvade and enemyBotOptions:
+            Lockdown.huntEnemyBots(lockdownState, actionManager, botsThatCanInvade, enemyBotOptions)
+        else:
+            for myBot2 in botsThatCanInvade:
+                Lockdown.captureEnemyTiles(actionManager, myBot2, enemyTileOptions)
+
+        Lockdown.useRemainingMatsToEmpowerInvade(gameState, lockdownState, actionManager)
+
+    @staticmethod
+    def useRemainingMatsToEmpowerInvade(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager):
+        numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(lockdownState.matsRemaining,
+                                                              lockdownState.numRecyclersLeftToBuild)
+        LOG.debug(f"can build/spawn {numSpawns} in enemy territory")
+        if numSpawns:
+            buildLocationOptions = []
+            for tile in gameState.myTiles:
+                if Lockdown.isPassedLockdownColumn(gameState.startedOnLeftSide, lockdownState.lockdownCol, tile.x) and \
+                        tile.canBuild and \
+                        not tile.inRangeOfRecycler:
+                    buildLocationOptions.append(tile)
+            LOG.debug(f"{len(buildLocationOptions)} build options in enemy territory")
+            myBotsAdvantageBuffer = 1.10  # have 10% more bots than oppo
+            if buildLocationOptions and len(gameState.myUnits) < len(gameState.oppoUnits) * myBotsAdvantageBuffer:
+                buildChoice = random.choice(buildLocationOptions)
+                LOG.debug(f"randomly spawning in enemy territory at {buildChoice}")
+                actionManager.enqueueSpawn(1, buildChoice)
+                lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
+                buildLocationOptions.remove(buildChoice)
+
+            # TODO - CONTINUE HERE - better recycler play
+            if buildLocationOptions and numSpawns > 1:
+                # picks further into enemy territory and center-most location
+                midWayRow = int(gameState.mapHeight / 2)
+                midWayCol = int(gameState.mapWidth / 2)
+                furthestOutTile = Lockdown.findClosestTile(buildLocationOptions, Lockdown.getEdgeTile(gameState,
+                                                                                                      gameState.tiles[
+                                                                                                          midWayRow][
+                                                                                                          midWayCol]))
+                LOG.debug(f"building recycler in enemy territory at {furthestOutTile}")
+                actionManager.enqueueBuild(furthestOutTile)
+                lockdownState.matsRemaining -= MATS_COST_TO_BUILD
+                buildLocationOptions.remove(furthestOutTile)
+
+
 
     @staticmethod
     def isPassedLockdownColumn(startedOnLeftSide: bool, lockdownCol: int, colNum: int):
@@ -140,23 +195,26 @@ class Lockdown:
         else:
             return colNum < lockdownCol
 
-
     @staticmethod
-    def huntEnemyBots(lockdownState: LockdownState, actionManager: ActionManager, myBot: Tile, enemyBotOptions: List[Tile]):
-        maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
-            lockdownState.matsRemaining,
-            lockdownState.numRecyclersLeftToBuild
-        )
-        closestEnemyBot = Lockdown.findClosestTile(enemyBotOptions, myBot)
-        LOG.debug(f"using={myBot} to hunt enemy={closestEnemyBot}")
-        actionManager.enqueueMove(myBot.units, myBot, closestEnemyBot)
-        enemyBotOptions.remove(closestEnemyBot)
-        if maxSpawns and closestEnemyBot.units >= myBot.units:
-            minRequiredToSurvive = max(closestEnemyBot.units - myBot.units, 1)
-            spawnAmount = min(minRequiredToSurvive, maxSpawns)
-            LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemyBot}")
-            actionManager.enqueueSpawn(spawnAmount, myBot)
-            lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+    def huntEnemyBots(lockdownState: LockdownState, actionManager: ActionManager, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile]):
+        for enemyBot in enemyBotOptions:
+            myClosestBot, distance = Lockdown.findClosestTileAndDistance(botsThatCanInvade, enemyBot)
+            if myClosestBot is None:
+                break
+            maxDistanceInOrderToSpawn = 3
+            maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
+                lockdownState.matsRemaining,
+                lockdownState.numRecyclersLeftToBuild
+            )
+            LOG.debug(f"using={myClosestBot} to hunt enemy={enemyBot} that is {distance} away")
+            actionManager.enqueueMove(myClosestBot.units, myClosestBot, enemyBot)
+            botsThatCanInvade.remove(myClosestBot)
+            if distance < maxDistanceInOrderToSpawn and maxSpawns and enemyBot.units >= myClosestBot.units:
+                minRequiredToSurvive = max(enemyBot.units - myClosestBot.units, 1)
+                spawnAmount = min(minRequiredToSurvive, maxSpawns)
+                LOG.debug(f"spawning={spawnAmount} to hunt enemy={enemyBot}")
+                actionManager.enqueueSpawn(spawnAmount, myClosestBot)
+                lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
 
     @staticmethod
     def captureEnemyTiles(actionManager: ActionManager, myBot: Tile, enemyTileOptions: List[Tile]):
@@ -177,9 +235,10 @@ class Lockdown:
         myBots = list(filter(isTileOnMySide, gameState.myUnits))
 
         if not myBots:
-            # todo (optimization): only need 1
+            # todo (optimization): only need to find a single tile rather than filtering through entire list
             myTilesOnMySide = list(filter(isTileOnMySide, gameState.myTiles))
             actionManager.enqueueSpawn(1, myTilesOnMySide[0])
+            LOG.debug(f"spawning {myTilesOnMySide[0]} to start reclaiming")
             lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
 
         moveActions = []
@@ -199,20 +258,25 @@ class Lockdown:
         for moveAction in moveActions:
             actionManager.enqueueMoveAction(moveAction)
 
+    @staticmethod
+    def findClosestTile(tileOptions: List[Tile], targetTile: Tile) -> Optional[Tile]:
+        return Lockdown.findClosestTileAndDistance(tileOptions, targetTile)[0]
+
     # todo this doesn't take into account grass tiles, recyclers, or enemy bots getting in the way
     #  I've noticed this will cause us to get in an infinite loop of moving directionally away from the targetTile since that's the shortest path (grass blocks us from going by the way the crow flies)
     #  Then we spawn where that bot used to be since it's the closest bot, then we'll repeat with the spawned bot next turn, etc.
     @staticmethod
-    def findClosestTile(tileOptions: List[Tile], targetTile: Tile) -> Optional[Tile]:
+    def findClosestTileAndDistance(tileOptions: List[Tile], targetTile: Tile) -> Tuple[Optional[Tile], int]:
         if len(tileOptions) == 0:
-            return None
-        if len(tileOptions) == 1:
-            return tileOptions[0]
+            return None, None
+        # todo: had to remove the short-ciruit since the distance calc can't be simplified
+        # if len(tileOptions) == 1:
+        #     return tileOptions[0], None
         # Source: https://stackoverflow.com/questions/10818546/finding-index-of-nearest-point-in-numpy-arrays-of-x-and-y-coordinates
         allTiles = np.array([[tile.x, tile.y] for tile in tileOptions])
         tree = spatial.KDTree(allTiles)
         distance, index = tree.query([targetTile.x, targetTile.y])
-        return tileOptions[index]
+        return tileOptions[index], distance
 
     @staticmethod
     def getNumberOfSpawnActionsAvailable(matsRemaining: int, numRecyclersToBuild: int) -> int:
@@ -220,6 +284,12 @@ class Lockdown:
         matsToSaveForNextTurn = max(numRecyclersToBuild * MATS_COST_TO_BUILD - MATS_INCOME_PER_TURN, 0)
         matsToSpend = max(matsRemaining - matsToSaveForNextTurn, 0)
         return int(matsToSpend / MATS_COST_TO_SPAWN)
+
+    @staticmethod
+    def getEdgeTile(gameState: GameState, bot: Tile):
+        # todo: this doesn't account for grass tiles. In games, I've seen targeting grass tiles
+        #  cause the bot to stay where it is
+        return gameState.tiles[bot.y][-1] if gameState.startedOnLeftSide else gameState.tiles[bot.y][0]
 
     @staticmethod
     def getAdjacentTileToMoveTo(gameState: GameState, fromTile: Tile) -> Optional[Tile]:
