@@ -35,8 +35,7 @@ class Lockdown:
         Lockdown.moveBotsOnRecyclerTile(gameState, lockdownState, actionManager)
 
         # After recyclers are built - reclaim enemy land on my side of the map
-        if lockdownState.isLocked(gameState):
-            LOG.debug("Reclaiming.")
+        if lockdownState.isLocked(gameState) or Lockdown.hasSpareReclaimBot(gameState, lockdownState):
             Lockdown.reclaimMySideOfMap(gameState, lockdownState, actionManager)
 
         actionManager.doActions()
@@ -306,9 +305,21 @@ class Lockdown:
                 else:
                     bot.units -= 1
 
+    @staticmethod
+    def hasSpareReclaimBot(gameState: GameState, lockdownState: LockdownState) -> bool:
+        for myBot in lockdownState.botOptions:
+            if myBot.x != lockdownState.lockdownCol and not Lockdown.isPassedLockdownColumn(gameState.startedOnLeftSide, lockdownState.lockdownCol, myBot.x):
+                LOG.debug(f"Found spare reclaim bot {myBot}")
+                return True
+
+        return False
+
     # Prioritizes taking enemy tiles back first, then goes for neutral tiles
     @staticmethod
     def reclaimMySideOfMap(gameState: GameState, lockdownState: LockdownState, actionManager: ActionManager) -> List[MoveAction]:
+        # todo: this doesn't handle islands well. if we have two islands with a bot only on one island,
+        #  we need to spawn a new bot on the other island.
+        LOG.debug("Reclaiming.")
         isTileOnMySide = lambda tile: tile.x < lockdownState.lockdownCol if gameState.startedOnLeftSide else tile.x > lockdownState.lockdownCol
         enemyTilesOnMySide = list(filter(isTileOnMySide, gameState.oppoTiles))
         neutralTilesOnMySide = list(filter(isTileOnMySide, gameState.neutralTiles))
@@ -323,15 +334,19 @@ class Lockdown:
 
         moveActions = []
         if len(enemyTilesOnMySide) > 0:
-            tilesToMoveTo = enemyTilesOnMySide
+            tilesToClaim = enemyTilesOnMySide
         elif len(neutralTilesOnMySide) > 0:
-            tilesToMoveTo = neutralTilesOnMySide
+            tilesToClaim = neutralTilesOnMySide
         else:
             return []
 
+        reachableTiles = list(filter(lambda tile: Lockdown.isAdjacentToOwnedTile(gameState, tile), tilesToClaim))
+        LOG.debug(f"Can't reclaim {str(set(tilesToClaim) - set(reachableTiles))}")
         # for each bot go to closest enemy tile
         for myBot in myBots:
-            tileToMoveTo = Lockdown.findClosestTile(tilesToMoveTo, myBot)
+            tileToMoveTo = Lockdown.findClosestTile(reachableTiles, myBot)
+            if tileToMoveTo is None:
+                break
             LOG.debug(f"reclaiming={tileToMoveTo} with bot={myBot}")
             moveActions.append(MoveAction(myBot.units, myBot, tileToMoveTo))
 
@@ -372,49 +387,49 @@ class Lockdown:
         return gameState.tiles[bot.y][-1] if gameState.startedOnLeftSide else gameState.tiles[bot.y][0]
 
     @staticmethod
-    def getAdjacentTileToMoveTo(gameState: GameState, fromTile: Tile) -> Optional[Tile]:
+    def isAdjacentToOwnedTile(gameState: GameState, tile: Tile) -> bool:
         coordinatesToTry = [
             {
-                'x': fromTile.x,
-                'y': fromTile.y - 1
+                'x': tile.x,
+                'y': tile.y - 1
             },
             {
-                'x': fromTile.x,
-                'y': fromTile.y + 1
+                'x': tile.x,
+                'y': tile.y + 1
             },
+            # {
+            #     'x': tile.x - 1,
+            #     'y': tile.y - 1
+            # },
             {
-                'x': fromTile.x - 1,
-                'y': fromTile.y - 1
+                'x': tile.x - 1,
+                'y': tile.y
             },
+            # {
+            #     'x': tile.x - 1,
+            #     'y': tile.y + 1
+            # },
+            # {
+            #     'x': tile.x + 1,
+            #     'y': tile.y - 1
+            # },
             {
-                'x': fromTile.x - 1,
-                'y': fromTile.y
+                'x': tile.x + 1,
+                'y': tile.y
             },
-            {
-                'x': fromTile.x - 1,
-                'y': fromTile.y + 1
-            },
-            {
-                'x': fromTile.x + 1,
-                'y': fromTile.y - 1
-            },
-            {
-                'x': fromTile.x + 1,
-                'y': fromTile.y
-            },
-            {
-                'x': fromTile.x + 1,
-                'y': fromTile.y + 1
-            },
+            # {
+            #     'x': tile.x + 1,
+            #     'y': tile.y + 1
+            # },
         ]
 
         for targetCoordinates in coordinatesToTry:
             if targetCoordinates['y'] < len(gameState.tiles) and targetCoordinates['x'] < len(gameState.tiles[targetCoordinates['y']]):
                 targetTile = gameState.tiles[targetCoordinates['y']][targetCoordinates['x']]
-                if not targetTile.isGrass():
-                    return targetTile
+                if targetTile.owner == ME:
+                    return True
 
-        return None
+        return False
 
     # Get the column we are blocking off with grass
     @staticmethod
