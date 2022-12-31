@@ -12,7 +12,6 @@ from imports.ActionManager import ActionManager
 from imports.GameState import GameState
 from imports.LockdownState import LockdownState
 from imports.Tile import Tile, ME, OPP
-from imports.MoveAction import MoveAction
 
 from Economy import MATS_COST_TO_BUILD, MATS_COST_TO_SPAWN, MATS_INCOME_PER_TURN
 
@@ -54,7 +53,7 @@ class Lockdown:
             if closestBot is not None:
                 if closestBot.isSameLocation(buildLocation):
                     LOG.debug(f"must move {closestBot} away from desired recycler location")
-                    self.lockdownState.botsOnRecyclerTile.append(closestBot)
+                    continue
                 elif buildLocation.owner is not ME:  # we hit this if we don't have enough to build a recycler on an owned tile
                     # We need to go convert the tile to be owned by us before we can build on it, go move there
                     # todo this can sometimes cause us to move onto a different recycler build target location
@@ -203,14 +202,14 @@ class Lockdown:
             enemyTileOptions.remove(closestEmptyEnemyTile)
 
     def moveBotsOnRecyclerTile(self):
-        for bot in self.lockdownState.botsOnRecyclerTile:
-            if bot in self.lockdownState.botOptions:
-                LOG.debug(f"moving bot {bot} forward away from desired recycler location")
-                self.actionManager.enqueueMove(bot.units, bot, self.getEdgeTile(bot))
-                if bot.units == 1:
-                    self.lockdownState.botOptions.remove(bot)
+        for botOption in self.lockdownState.botOptions:
+            if botOption in self.lockdownState.bestRecyclerTiles:
+                LOG.debug(f"moving bot {botOption} forward away from desired recycler location")
+                self.actionManager.enqueueMove(botOption.units, botOption, self.getEdgeTile(botOption))
+                if botOption.units == 1:
+                    self.lockdownState.botOptions.remove(botOption)
                 else:
-                    bot.units -= 1
+                    botOption.units -= 1
 
     def hasSpareReclaimBot(self) -> bool:
         for myBot in self.lockdownState.botOptions:
@@ -221,7 +220,7 @@ class Lockdown:
         return False
 
     # Prioritizes taking enemy tiles back first, then goes for neutral tiles
-    def reclaimMySideOfMap(self) -> List[MoveAction]:
+    def reclaimMySideOfMap(self) -> None:
         # todo: this doesn't handle islands well. if we have two islands with a bot only on one island,
         #  we need to spawn a new bot on the other island.
         LOG.debug("Reclaiming.")
@@ -230,20 +229,19 @@ class Lockdown:
         neutralTilesOnMySide = list(filter(isTileOnMySide, self.gameState.neutralTiles))
         myBots = list(filter(isTileOnMySide, self.gameState.myUnits))
 
-        if not myBots:
+        if not myBots and self.lockdownState.matsRemaining >= MATS_COST_TO_SPAWN:
             # todo (optimization): only need to find a single tile rather than filtering through entire list
             myTilesOnMySide = list(filter(isTileOnMySide, self.gameState.myTiles))
             self.actionManager.enqueueSpawn(1, myTilesOnMySide[0])
             LOG.debug(f"spawning {myTilesOnMySide[0]} to start reclaiming")
             self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
 
-        moveActions = []
         if len(enemyTilesOnMySide) > 0:
             tilesToClaim = enemyTilesOnMySide
         elif len(neutralTilesOnMySide) > 0:
             tilesToClaim = neutralTilesOnMySide
         else:
-            return []
+            return
 
         reachableTiles = list(filter(lambda tile: self.isAdjacentToOwnedTile(tile), tilesToClaim))
         LOG.debug(f"Can't reclaim {str(set(tilesToClaim) - set(reachableTiles))}")
@@ -252,10 +250,7 @@ class Lockdown:
             if tileToMoveTo is None:
                 break
             LOG.debug(f"reclaiming={tileToMoveTo} with bot={myBot}")
-            moveActions.append(MoveAction(myBot.units, myBot, tileToMoveTo))
-
-        for moveAction in moveActions:
-            self.actionManager.enqueueMoveAction(moveAction)
+            self.actionManager.enqueueMove(myBot.units, myBot, tileToMoveTo)
 
     @staticmethod
     def findClosestTile(tileOptions: List[Tile], targetTile: Tile) -> Optional[Tile]:
@@ -296,30 +291,14 @@ class Lockdown:
                 'x': tile.x,
                 'y': tile.y + 1
             },
-            # {
-            #     'x': tile.x - 1,
-            #     'y': tile.y - 1
-            # },
             {
                 'x': tile.x - 1,
                 'y': tile.y
             },
-            # {
-            #     'x': tile.x - 1,
-            #     'y': tile.y + 1
-            # },
-            # {
-            #     'x': tile.x + 1,
-            #     'y': tile.y - 1
-            # },
             {
                 'x': tile.x + 1,
                 'y': tile.y
             },
-            # {
-            #     'x': tile.x + 1,
-            #     'y': tile.y + 1
-            # },
         ]
 
         for targetCoordinates in coordinatesToTry:

@@ -2,19 +2,14 @@ import os
 
 from imports.LOG import LOG
 from imports.Tile import Tile
-from imports.MoveAction import MoveAction
 
 
 class ActionManager:
     def __init__(self):
         self.actions = []
 
-    def enqueueMoveAction(self, moveAction: MoveAction) -> None:
-        self.actions.append(moveAction.getActionString())
-
     def enqueueMove(self, numUnits: int, fromTile: Tile, toTile: Tile) -> None:
-        moveAction = MoveAction(numUnits, fromTile, toTile)
-        self.enqueueMoveAction(moveAction)
+        self.actions.append(f"MOVE {numUnits} {fromTile.x} {fromTile.y} {toTile.x} {toTile.y}")
 
     def enqueueSpawn(self, amount, tile: Tile) -> None:
         self.actions.append('SPAWN {} {} {}'.format(amount, tile.x, tile.y))

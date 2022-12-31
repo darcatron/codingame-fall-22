@@ -44,6 +44,9 @@
 3. Getting killed by recyclers that grassify a square 
 4. Getting many bots stuck on an island/Spawning excessive bots on an island
 
+Better lockdown
+* seed=-8049619562529677000
+
 Bug
 * N/A
 
