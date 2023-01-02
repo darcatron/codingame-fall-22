@@ -33,15 +33,11 @@
       * basically a really heavy front line
 
 ### Matush
-1. def wall fix that Sean caught
-2. Push latest into arena and verify no change in rank
-3. Better lockdown
+1. implement trash talking
+2. Better lockdown
    * seed=-8049619562529677000
      * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
-   * Oppo has broken the lockdown at least once. Play games to find an occurance of that and fix it.
-     * seed=639895587414128800 - turn 13 - units should be holding but move forward
-     * seed=6523493945666958000 - turn 6 - units should be spawned to hold but aren't
-4. implement trash talking
+
 
 ### Sean
 Better invade
@@ -116,4 +112,4 @@ Phase 2
 12/25/22 15:40 (cleaned up and committed latest) - 529 / 1746
 12/31/22 15:37 (no changes) - 449 / 1815
 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
-1/2/23 ? (fix defensive wall bug) - ? / ?
+1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
