@@ -20,6 +20,9 @@ while True:
         myUnitX = gameState.myUnits[0].x if len(gameState.myUnits) > 0 else 0
         oppoUnitX = gameState.oppoUnits[0].x if len(gameState.oppoUnits) > 0 else 0
         startedOnLeftSide = myUnitX < oppoUnitX
+        gameState.startedOnLeftSide = startedOnLeftSide
 
-    Lockdown.takeActions(gameState, startedOnLeftSide)
+    lockdown = Lockdown(gameState)
+    lockdown.takeActions()
+
     turnNumber += 1

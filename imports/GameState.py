@@ -9,6 +9,7 @@ from imports.Tile import Tile
 class GameState:
     mapWidth: int
     mapHeight: int
+    startedOnLeftSide: bool
 
     tiles: List[List[Tile]]
     myMats: int = None
