@@ -20,7 +20,7 @@ class Lockdown:
         lockdownColumn = Lockdown.getLockdownColumn(gameState)
         bestRecyclerTiles = Lockdown.getTilesForRecyclersToBlockColumn(gameState.tiles, gameState.myRecyclers, lockdownColumn)
         self.actionManager = ActionManager()
-        self.lockdownState = LockdownState(lockdownColumn, bestRecyclerTiles, len(bestRecyclerTiles), gameState.myMats, copy(gameState.myUnits), [])
+        self.lockdownState = LockdownState(lockdownColumn, bestRecyclerTiles, len(bestRecyclerTiles), gameState.myMats, copy(gameState.myUnits))
         self.gameState = gameState
 
     def takeActions(self):
@@ -41,7 +41,7 @@ class Lockdown:
 
     def tryToPlaceRecyclers(self):
         # First step, go build recyclers to block them out on part of the map
-        LOG.debug("Best recycler tiles: " + str(self.lockdownState.bestRecyclerTiles))
+        LOG.debug("== Best recycler tiles: " + str(self.lockdownState.bestRecyclerTiles))
         for buildLocation in self.lockdownState.bestRecyclerTiles:
             if buildLocation.canBuild and self.lockdownState.matsRemaining >= MATS_COST_TO_BUILD:
                 self.actionManager.enqueueBuild(buildLocation)
@@ -68,30 +68,15 @@ class Lockdown:
                         closestBot.units -= 1
 
     def buildDefensiveBotWall(self) -> None:
+        LOG.debug("== Starting Defensive Bot Wall Steps")
         for row in self.gameState.tiles:
             curLockdownTile = row[self.lockdownState.lockdownCol]
-            if curLockdownTile in self.lockdownState.bestRecyclerTiles:
-                # we already have other logic moving bots to capture the recycler tiles
+            if curLockdownTile.inRangeOfRecycler and curLockdownTile.scrapAmount == 1:
+                # don't wanna build on tiles that are about to be grass
                 continue
-            elif curLockdownTile.canSpawn:
-                if curLockdownTile.inRangeOfRecycler and curLockdownTile.scrapAmount == 1:
-                    # don't wanna build on tiles that are about to be grassified
-                    continue
-
-                tileInFrontOfCurLockdownTile = self.gameState.tiles[curLockdownTile.y][curLockdownTile.x + 1 if self.gameState.startedOnLeftSide else curLockdownTile.x - 1]
-                if tileInFrontOfCurLockdownTile.owner == OPP and tileInFrontOfCurLockdownTile.units > 0:
-                    additionalRequiredUnits = max(tileInFrontOfCurLockdownTile.units - curLockdownTile.units + 1, 0)
-                    if additionalRequiredUnits == 0:
-                        continue
-                    maxSpawnActions = Lockdown.getNumberOfSpawnActionsAvailable(self.lockdownState.matsRemaining, self.lockdownState.numRecyclersLeftToBuild)
-                    spawnAmount = min(additionalRequiredUnits, maxSpawnActions)
-                    LOG.debug(f"Spawning {spawnAmount} to hold lockdown tile {curLockdownTile}")
-                    self.actionManager.enqueueSpawn(spawnAmount, curLockdownTile)
-                    # todo: it's easy to forget to decrement mats. move this into a method so it's easier to maintain state
-                    self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
-                    if curLockdownTile in self.lockdownState.botOptions:
-                        # these bots need to stay put and can't be used for other actions
-                        self.lockdownState.botOptions.remove(curLockdownTile)
+            tileInFrontOfCurLockdownTile = self.gameState.tiles[curLockdownTile.y][curLockdownTile.x + 1 if self.gameState.startedOnLeftSide else curLockdownTile.x - 1]
+            if curLockdownTile.canSpawn and tileInFrontOfCurLockdownTile.owner == OPP and tileInFrontOfCurLockdownTile.units > 0:
+                self.spawnToProtectLockdownTile(curLockdownTile, tileInFrontOfCurLockdownTile)
             elif self.lockdownState.botOptions and Lockdown.shouldCaptureLockdownTile(curLockdownTile):
                 # todo: it's easy to forget to decrement the botOptions. move this into a method so it's easier to maintain state
                 closestBot = Lockdown.findClosestTile(self.lockdownState.botOptions, curLockdownTile)
@@ -102,29 +87,52 @@ class Lockdown:
                 else:
                     closestBot.units -= 1
 
+    def spawnToProtectLockdownTile(self, lockdownTile: Tile, tileInFrontOfLockdownTile: Tile):
+        desiredTotalUnits = tileInFrontOfLockdownTile.units + 1
+        unitsOnOurTile = 0
+        curLockdownTileBotOption = None
+        if lockdownTile in self.lockdownState.botOptions:
+            # we can only use these units if they aren't already being assigned to another task like building recyclers
+            curLockdownTileBotOption = self.findClosestTile(self.lockdownState.botOptions, lockdownTile)
+            unitsOnOurTile = curLockdownTileBotOption.units
+        additionalRequiredUnits = max(desiredTotalUnits - unitsOnOurTile, 0)
+        LOG.debug(f"need {additionalRequiredUnits} to hold against {tileInFrontOfLockdownTile}")
+        if additionalRequiredUnits == 0:
+            # make sure the units defending aren't used elsewhere
+            if curLockdownTileBotOption:
+                if curLockdownTileBotOption.units == desiredTotalUnits:
+                    self.lockdownState.botOptions.remove(lockdownTile)
+                else:
+                    curLockdownTileBotOption.units -= tileInFrontOfLockdownTile.units
+            return
+
+        maxSpawnActions = Lockdown.getNumberOfSpawnActionsAvailable(
+            self.lockdownState.matsRemaining,
+            self.lockdownState.numRecyclersLeftToBuild
+        )
+        spawnAmount = min(additionalRequiredUnits, maxSpawnActions)
+        LOG.debug(f"spawning {spawnAmount} to hold lockdown tile {lockdownTile}")
+        self.actionManager.enqueueSpawn(spawnAmount, lockdownTile)
+        # todo: it's easy to forget to decrement mats. move this into a method so it's easier to maintain state
+        self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+        if lockdownTile in self.lockdownState.botOptions:
+            # these bots need to stay put and can't be used for other actions
+            self.lockdownState.botOptions.remove(lockdownTile)
+
     @staticmethod
     def shouldCaptureLockdownTile(lockdownTile: Tile) -> bool:
         return not lockdownTile.owner == ME and not lockdownTile.recycler and not lockdownTile.isGrass()
 
     def invade(self) -> None:
+        LOG.debug("== Starting Invade Steps")
         botsThatCanInvade = [myBot for myBot in self.lockdownState.botOptions if myBot.x == self.lockdownState.lockdownCol or
                              Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol,
                                                              myBot.x)]
         LOG.debug(f"{len(botsThatCanInvade)} bot options left with to invade")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats left with to invade")
         enemyBotOptions = copy(self.gameState.oppoUnits)
-        enemyTileOptions = [tile for tile in copy(self.gameState.oppoTiles) if tile.units == 0 and not tile.recycler]
 
-        if self.lockdownState.isLocked(self.gameState) and not botsThatCanInvade:
-            LOG.debug("Locked but no invading bots.")
-            numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(self.lockdownState.matsRemaining,
-                                                                  self.lockdownState.numRecyclersLeftToBuild)
-            counter = 0
-            for _ in range(min(numSpawns, len(enemyTileOptions))):
-                myTileClosestToEnemyTile = Lockdown.findClosestTile(self.gameState.myTiles, enemyTileOptions[counter])
-                LOG.debug(f"no invading bots. spawning 1 at={myTileClosestToEnemyTile}")
-                self.actionManager.enqueueSpawn(1, myTileClosestToEnemyTile)
-                self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
+        self.spawnBotsToInvadeIfNecessary(botsThatCanInvade)
 
         for myBot in botsThatCanInvade:
             edgeTile = self.getEdgeTile(myBot)
@@ -134,8 +142,22 @@ class Lockdown:
                     self.actionManager.enqueueMove(myBot.units, myBot, edgeTile)
                     botsThatCanInvade.remove(myBot)
 
-        self.huntEnemyBots(botsThatCanInvade, enemyBotOptions, enemyTileOptions)
+        self.huntEnemyBots(botsThatCanInvade, enemyBotOptions)
         self.useRemainingMatsToEmpowerInvade()
+
+    def spawnBotsToInvadeIfNecessary(self, botsThatCanInvade: List[Tile]) -> None:
+        if self.lockdownState.isLocked(self.gameState) and not botsThatCanInvade:
+            LOG.debug("Locked but no invading bots.")
+            numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(self.lockdownState.matsRemaining,
+                                                                  self.lockdownState.numRecyclersLeftToBuild)
+            counter = 0
+            enemyEmptyTileOptions = [tile for tile in copy(self.gameState.oppoTiles) if
+                                     tile.units == 0 and not tile.recycler]
+            for _ in range(min(numSpawns, len(enemyEmptyTileOptions))):
+                myTileClosestToEnemyTile = Lockdown.findClosestTile(self.gameState.myTiles, enemyEmptyTileOptions[counter])
+                LOG.debug(f"no invading bots. spawning 1 at={myTileClosestToEnemyTile}")
+                self.actionManager.enqueueSpawn(1, myTileClosestToEnemyTile)
+                self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
 
     def useRemainingMatsToEmpowerInvade(self):
         numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(self.lockdownState.matsRemaining,
@@ -166,7 +188,7 @@ class Lockdown:
         else:
             return colNum < lockdownCol
 
-    def huntEnemyBots(self, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile], enemyTileOptions: List[Tile]):
+    def huntEnemyBots(self, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile]):
         if not enemyBotOptions:
             return
 
@@ -190,18 +212,20 @@ class Lockdown:
                         self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
 
         for unusedBot in botsThatCanInvade:
-            self.captureEnemyTiles(unusedBot, enemyTileOptions)
+            self.captureEnemyTiles(unusedBot)
 
-    def captureEnemyTiles(self, myBot: Tile, enemyTileOptions: List[Tile]):
+    def captureEnemyTiles(self, myBot: Tile):
+        enemyEmptyTileOptions = [tile for tile in copy(self.gameState.oppoTiles) if tile.units == 0 and not tile.recycler]
         for botUnit in range(myBot.units):
-            if not enemyTileOptions:
+            if not enemyEmptyTileOptions:
                 break
-            closestEmptyEnemyTile = Lockdown.findClosestTile(enemyTileOptions, myBot)
+            closestEmptyEnemyTile = Lockdown.findClosestTile(enemyEmptyTileOptions, myBot)
             LOG.debug(f"using={myBot} to capture tile={closestEmptyEnemyTile}")
             self.actionManager.enqueueMove(1, myBot, closestEmptyEnemyTile)
-            enemyTileOptions.remove(closestEmptyEnemyTile)
+            enemyEmptyTileOptions.remove(closestEmptyEnemyTile)
 
     def moveBotsOnRecyclerTile(self):
+        LOG.debug("== Starting moveBotsOnRecyclerTile")
         for botOption in self.lockdownState.botOptions:
             if botOption in self.lockdownState.bestRecyclerTiles:
                 LOG.debug(f"moving bot {botOption} forward away from desired recycler location")
@@ -214,7 +238,7 @@ class Lockdown:
     def hasSpareReclaimBot(self) -> bool:
         for myBot in self.lockdownState.botOptions:
             if myBot.x != self.lockdownState.lockdownCol and not Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol, myBot.x):
-                LOG.debug(f"Found spare reclaim bot {myBot}")
+                LOG.debug(f"found spare reclaim bot {myBot}")
                 return True
 
         return False
@@ -223,7 +247,7 @@ class Lockdown:
     def reclaimMySideOfMap(self) -> None:
         # todo: this doesn't handle islands well. if we have two islands with a bot only on one island,
         #  we need to spawn a new bot on the other island.
-        LOG.debug("Reclaiming.")
+        LOG.debug("== Starting reclaim")
         isTileOnMySide = lambda tile: tile.x < self.lockdownState.lockdownCol if self.gameState.startedOnLeftSide else tile.x > self.lockdownState.lockdownCol
         enemyTilesOnMySide = list(filter(isTileOnMySide, self.gameState.oppoTiles))
         neutralTilesOnMySide = list(filter(isTileOnMySide, self.gameState.neutralTiles))

@@ -32,44 +32,34 @@
       done
       * basically a really heavy front line
 
-### Matush Ideas
-#### TODO - CONTINUE HERE
-1. Better invade
+### Matush
+1. def wall fix that Sean caught
+2. Push latest into arena and verify no change in rank
+3. Better lockdown
+   * seed=-8049619562529677000
+     * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
+   * Oppo has broken the lockdown at least once. Play games to find an occurance of that and fix it.
+     * seed=639895587414128800 - turn 13 - units should be holding but move forward
+     * seed=6523493945666958000 - turn 6 - units should be spawned to hold but aren't
+4. implement trash talking
+
+### Sean
+Better invade
    * Idea: focus on capturing tiles further out
      * spawn bots on further out tiles rather than randomly. Also spawn more than 1 to claim more land
      * hunt forward, not backwards whenever possible
    * building recyclers strategically on enemy side - reduces # of tiles they can capture
-2. if adjacent tile to lockdown tile is grass or recycler, it's in a lockdown (LockdownState#L17). We don't need to 
+
+### Later
+* If adjacent tile to lockdown tile is grass or recycler, it's in a lockdown (LockdownState#L17). We don't need to 
    spawn a defense bot on tiles that are next to grass or recyclers either
-3. Getting killed by recyclers that grassify a square 
-4. Getting many bots stuck on an island/Spawning excessive bots on an island
-
-Better lockdown
-* seed=-8049619562529677000
-
-Bug
-* N/A
-
-Crazy maps
-* Only one path to get to the other side. Bots end up destroying their own territory.
-  * seed=-7202217520983007000
-
-
-#### Variables
-* lockdown column
-* enemy bot hunting distance minimum
-* myBotsAdvantageBuffer
-
-Game constraints: 
-12 ≤ width ≤ 24
-6 ≤ height ≤ 12
-
-
-#### Later
+* Getting killed by recyclers that grassify a square 
+* Getting many bots stuck on an island/Spawning excessive bots on an island
 * Bots can get stuck between recyclers and grass. We should exclude stuck bots from any actions. 
   * Method to change: Lockdown#findClosestTile 
   * Tests
     * seed=550138732694500030
+* https://github.com/darcatron/codingame-fall-22/pull/4#discussion_r1059464702
 * When we spawn a bot, we don't incorporate it into our MOVE action. We might not always want to but move the newly 
   spawned unit but if we're trying to overtake enemies, we'll need to ensure we move everyone together. If we don't 
   yet own the destination tile, there's no way to spawn new bots on the destination tile.
@@ -86,6 +76,21 @@ Game constraints:
         because there's a grass tile next to (8,10) that naturally creates the lockdown
 findClosestTile needs to account for grass and recycler blockers 
    * this looks hard to do cause of the scipy lib we're using. We'd need a graph rather than a k-d grid
+
+Crazy maps
+* Only one path to get to the other side. Bots end up destroying their own territory.
+  * seed=-7202217520983007000
+
+
+#### Variables
+* lockdown column
+* enemy bot hunting distance minimum
+* myBotsAdvantageBuffer
+
+Game constraints: 
+12 ≤ width ≤ 24
+6 ≤ height ≤ 12
+
 
 ## General thoughts
   * Bots shouldn't stay on tiles they own if oppo bots are not close to those tiles
@@ -109,3 +114,6 @@ Phase 2
 12/25/22 14:40 (committed latest) - 818 1,744
 12/25/22 15:25 (wall and hunting++) - 459 / 1747
 12/25/22 15:40 (cleaned up and committed latest) - 529 / 1746
+12/31/22 15:37 (no changes) - 449 / 1815
+1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
+1/2/23 ? (fix defensive wall bug) - ? / ?
