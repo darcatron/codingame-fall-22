@@ -125,9 +125,7 @@ class Lockdown:
 
     def invade(self) -> None:
         LOG.debug("== Starting Invade Steps")
-        botsThatCanInvade = [myBot for myBot in self.lockdownState.botOptions if myBot.x == self.lockdownState.lockdownCol or
-                             Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol,
-                                                             myBot.x)]
+        botsThatCanInvade = self.getBotsThatCanInvade()
         LOG.debug(f"{len(botsThatCanInvade)} bot options left with to invade")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats left with to invade")
         enemyBotOptions = copy(self.gameState.oppoUnits) # todo: move this into huntEnemyBotsNew, it's the only method that uses it
@@ -142,8 +140,11 @@ class Lockdown:
                     self.actionManager.enqueueMove(myBot.units, myBot, edgeTile)
                     botsThatCanInvade.remove(myBot)
 
-        self.huntEnemyBotsNew(botsThatCanInvade, enemyBotOptions)
+        self.huntEnemyBots(botsThatCanInvade, enemyBotOptions)
         self.useRemainingMatsToEmpowerInvade()
+
+    def getBotsThatCanInvade(self):
+        return [myBot for myBot in self.lockdownState.botOptions if myBot.x == self.lockdownState.lockdownCol or Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol, myBot.x)]
 
     def spawnBotsToInvadeIfNecessary(self, botsThatCanInvade: List[Tile]) -> None:
         if self.lockdownState.isLocked(self.gameState) and not botsThatCanInvade:
@@ -160,6 +161,7 @@ class Lockdown:
                 self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
 
     def useRemainingMatsToEmpowerInvade(self):
+        LOG.debug("Starting empower")
         numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(self.lockdownState.matsRemaining,
                                                               self.lockdownState.numRecyclersLeftToBuild)
 
@@ -169,22 +171,54 @@ class Lockdown:
         #  when/how often:
         #  what: on furthest out tile, build a recycler
         #  subtract from numSpawns
-
+        buildLocationOptions = []
+        spawnLocationOptions = []
         if numSpawns:
-            buildLocationOptions = []
             for tile in self.gameState.myTiles:
-                if Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol, tile.x) and \
-                        tile.canBuild and \
-                        not tile.inRangeOfRecycler:
+                if Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol, tile.x) and tile.canBuild:
                     buildLocationOptions.append(tile)
             LOG.debug(f"{len(buildLocationOptions)} build options in enemy territory")
+
+            for tile in self.gameState.myTiles:
+                if Lockdown.isPassedLockdownColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol,
+                                                   tile.x):
+                    if tile.inRangeOfRecycler:
+                        if tile.scrapAmount > 1:
+                            spawnLocationOptions.append(tile)
+                    else:
+                        spawnLocationOptions.append(tile)
+            LOG.debug(f"{len(spawnLocationOptions)} spawn options in enemy territory")
+
+        if numSpawns and spawnLocationOptions:
+            spawnChoice = random.choice(self.getFrontmostTiles(spawnLocationOptions))
+
+            # first recyclers
+            if buildLocationOptions:
+                recyclerChoice = self.findClosestTile(buildLocationOptions, spawnChoice)
+                self.actionManager.enqueueBuild(recyclerChoice)
+                self.lockdownState.matsRemaining -= MATS_COST_TO_BUILD
+                numSpawns -= 1
+
+            # second spawn bots
             myBotsAdvantageBuffer = 1.10  # have 10% more bots than oppo
-            if buildLocationOptions and len(self.gameState.myUnits) < len(self.gameState.oppoUnits) * myBotsAdvantageBuffer:
-                buildChoice = random.choice(buildLocationOptions)
-                LOG.debug(f"randomly spawning in enemy territory at {buildChoice}")
-                self.actionManager.enqueueSpawn(1, buildChoice)
-                self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
-                buildLocationOptions.remove(buildChoice)
+            if numSpawns and len(self.getBotsThatCanInvade()) < len(self.gameState.oppoUnits) * myBotsAdvantageBuffer:
+                spawnAmount = max(int(numSpawns/2), 1)
+                LOG.debug(f"randomly spawning {spawnAmount} in enemy territory at {spawnChoice}")
+                self.actionManager.enqueueSpawn(spawnAmount, spawnChoice)
+                self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+                spawnLocationOptions.remove(spawnChoice)
+
+    def getFrontmostTiles(self, tileOptions: List[Tile]) -> List[Tile]:
+        pass
+        # check highest x (startedOnLeft) or lowest x (!startedOnLeft)
+        cols = [tile.x for tile in tileOptions]
+        if self.gameState.startedOnLeftSide:
+            frontmostCol = max(cols)
+        else:
+            frontmostCol = min(cols)
+
+        return [tile for tile in tileOptions if tile.x == frontmostCol]
+
 
     @staticmethod
     def isPassedLockdownColumn(startedOnLeftSide: bool, lockdownCol: int, colNum: int):
@@ -198,41 +232,15 @@ class Lockdown:
             return
 
         if botsThatCanInvade and enemyBotOptions:
-            for myBot in botsThatCanInvade:
-                # todo: this doesn't account for closestEnemy == None
-                closestEnemy, distance = Lockdown.findClosestTileAndDistance(enemyBotOptions, myBot)
-                if Lockdown.findClosestTile(botsThatCanInvade, closestEnemy) == myBot:
-                    maxDistanceInOrderToSpawn = 3
-                    maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
-                        self.lockdownState.matsRemaining,
-                        self.lockdownState.numRecyclersLeftToBuild
-                    )
-                    LOG.debug(f"using={myBot} to hunt enemy={closestEnemy} that is {distance} away")
-                    self.actionManager.enqueueMove(myBot.units, myBot, closestEnemy)
-                    botsThatCanInvade.remove(myBot)
-                    if distance < maxDistanceInOrderToSpawn and maxSpawns and closestEnemy.units >= myBot.units:
-                        minRequiredToSurvive = max(closestEnemy.units - myBot.units + 1, 1)
-                        spawnAmount = min(minRequiredToSurvive, maxSpawns)
-                        LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemy}")
-                        self.actionManager.enqueueSpawn(spawnAmount, myBot)
-                        self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
-
-        for unusedBot in botsThatCanInvade:
-            self.captureEnemyTiles(unusedBot)
-
-    def huntEnemyBotsNew(self, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile]):
-        if not enemyBotOptions:
-            return
-
-        if botsThatCanInvade and enemyBotOptions:
             # todo: verif there aren't other loops that might be borked cause we're mutating the iterable as we loop
-            for myBot in copy(botsThatCanInvade):
+            botsThatCanInvadeOriginalSet = copy(botsThatCanInvade)
+            for myBot in botsThatCanInvadeOriginalSet:
                 closestEnemy, distance = self.findClosestTileInFrontAndDistance(enemyBotOptions, myBot)
                 if closestEnemy is None:
                     continue
                 LOG.debug(f"myBot={myBot}'s closestEnemy={closestEnemy}")
-                LOG.debug(f"enemyBot={closestEnemy}'s all={Lockdown.findClosestTile(botsThatCanInvade, closestEnemy)}")
-                if Lockdown.findClosestTile(botsThatCanInvade, closestEnemy) == myBot:
+                LOG.debug(f"enemyBot={closestEnemy}'s all={Lockdown.findClosestTile(botsThatCanInvadeOriginalSet, closestEnemy)}")
+                if Lockdown.findClosestTile(botsThatCanInvadeOriginalSet, closestEnemy) == myBot:
                     maxDistanceInOrderToSpawn = 3
                     maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
                         self.lockdownState.matsRemaining,

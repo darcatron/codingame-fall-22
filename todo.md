@@ -35,6 +35,7 @@
 ### Matush
 #### Ideas
 1. Build recyclers spread out on enemy side***
+   * if frontmost tile is at the edge, build recyclers on owned tiles elsewhere 
 2. If on an island, just capture the island* 
     * seed=-2551717726100370400
 3. Better lockdown
@@ -118,4 +119,4 @@ Phase 2
 12/31/22 15:37 (no changes) - 449 / 1815
 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
-1/2/23 21:35 (only hunt forward) - 
+1/3/23 00:17 (only hunt forward) - 
