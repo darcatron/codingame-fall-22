@@ -162,7 +162,14 @@ class Lockdown:
     def useRemainingMatsToEmpowerInvade(self):
         numSpawns = Lockdown.getNumberOfSpawnActionsAvailable(self.lockdownState.matsRemaining,
                                                               self.lockdownState.numRecyclersLeftToBuild)
+
         LOG.debug(f"can build/spawn {numSpawns} in enemy territory")
+
+        # TODO - build recyclers strategically
+        #  when/how often:
+        #  what: on furthest out tile, build a recycler
+        #  subtract from numSpawns
+
         if numSpawns:
             buildLocationOptions = []
             for tile in self.gameState.myTiles:
@@ -178,8 +185,6 @@ class Lockdown:
                 self.actionManager.enqueueSpawn(1, buildChoice)
                 self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
                 buildLocationOptions.remove(buildChoice)
-
-            # TODO - build recyclers strategically
 
     @staticmethod
     def isPassedLockdownColumn(startedOnLeftSide: bool, lockdownCol: int, colNum: int):
@@ -220,10 +225,8 @@ class Lockdown:
             return
 
         if botsThatCanInvade and enemyBotOptions:
-            LOG.debug(f"botsThatCanInvade={botsThatCanInvade}")
             # todo: verif there aren't other loops that might be borked cause we're mutating the iterable as we loop
             for myBot in copy(botsThatCanInvade):
-                LOG.debug(f"{myBot}")
                 closestEnemy, distance = self.findClosestTileInFrontAndDistance(enemyBotOptions, myBot)
                 if closestEnemy is None:
                     continue
@@ -244,7 +247,6 @@ class Lockdown:
                         LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemy}")
                         self.actionManager.enqueueSpawn(spawnAmount, myBot)
                         self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
-                LOG.debug(f"{botsThatCanInvade}")
 
         for unusedBot in botsThatCanInvade:
             self.captureEnemyTiles(unusedBot)
@@ -254,7 +256,12 @@ class Lockdown:
         for botUnit in range(myBot.units):
             if not enemyEmptyTileOptions:
                 break
-            closestEmptyEnemyTile = Lockdown.findClosestTile(enemyEmptyTileOptions, myBot)
+            closestEmptyEnemyTile, _ = self.findClosestTileInFrontAndDistance(enemyEmptyTileOptions, myBot)
+            if not closestEmptyEnemyTile:
+                # closestEmptyEnemyTile = Lockdown.findClosestTile(enemyEmptyTileOptions, myBot)
+                continue
+            # if not closestEmptyEnemyTile:
+            #     continue
             LOG.debug(f"using={myBot} to capture tile={closestEmptyEnemyTile}")
             self.actionManager.enqueueMove(1, myBot, closestEmptyEnemyTile)
             enemyEmptyTileOptions.remove(closestEmptyEnemyTile)
@@ -375,7 +382,7 @@ class Lockdown:
         ]
 
         for targetCoordinates in coordinatesToTry:
-            if targetCoordinates['y'] < len(self.gameState.tiles) and targetCoordinates['x'] < len(self.gameState.tiles[targetCoordinates['y']]):
+            if len(self.gameState.tiles) > targetCoordinates['y'] >= 0 and 0 <= targetCoordinates['x'] < len(self.gameState.tiles[targetCoordinates['y']]):
                 targetTile = self.gameState.tiles[targetCoordinates['y']][targetCoordinates['x']]
                 if targetTile.owner == ME:
                     return True

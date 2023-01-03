@@ -42,6 +42,7 @@
      * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
 4. Better spawning
    * Spawn more on front-most tiles rather than randomly*
+   * Spawn on lockdown tiles where other bots don't yet exist
 
 ### Sean
 Better invade
