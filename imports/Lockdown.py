@@ -130,7 +130,7 @@ class Lockdown:
                                                              myBot.x)]
         LOG.debug(f"{len(botsThatCanInvade)} bot options left with to invade")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats left with to invade")
-        enemyBotOptions = copy(self.gameState.oppoUnits)
+        enemyBotOptions = copy(self.gameState.oppoUnits) # todo: move this into huntEnemyBotsNew, it's the only method that uses it
 
         self.spawnBotsToInvadeIfNecessary(botsThatCanInvade)
 
@@ -142,7 +142,7 @@ class Lockdown:
                     self.actionManager.enqueueMove(myBot.units, myBot, edgeTile)
                     botsThatCanInvade.remove(myBot)
 
-        self.huntEnemyBots(botsThatCanInvade, enemyBotOptions)
+        self.huntEnemyBotsNew(botsThatCanInvade, enemyBotOptions)
         self.useRemainingMatsToEmpowerInvade()
 
     def spawnBotsToInvadeIfNecessary(self, botsThatCanInvade: List[Tile]) -> None:
@@ -194,6 +194,7 @@ class Lockdown:
 
         if botsThatCanInvade and enemyBotOptions:
             for myBot in botsThatCanInvade:
+                # todo: this doesn't account for closestEnemy == None
                 closestEnemy, distance = Lockdown.findClosestTileAndDistance(enemyBotOptions, myBot)
                 if Lockdown.findClosestTile(botsThatCanInvade, closestEnemy) == myBot:
                     maxDistanceInOrderToSpawn = 3
@@ -210,6 +211,40 @@ class Lockdown:
                         LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemy}")
                         self.actionManager.enqueueSpawn(spawnAmount, myBot)
                         self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+
+        for unusedBot in botsThatCanInvade:
+            self.captureEnemyTiles(unusedBot)
+
+    def huntEnemyBotsNew(self, botsThatCanInvade: List[Tile], enemyBotOptions: List[Tile]):
+        if not enemyBotOptions:
+            return
+
+        if botsThatCanInvade and enemyBotOptions:
+            LOG.debug(f"botsThatCanInvade={botsThatCanInvade}")
+            # todo: verif there aren't other loops that might be borked cause we're mutating the iterable as we loop
+            for myBot in copy(botsThatCanInvade):
+                LOG.debug(f"{myBot}")
+                closestEnemy, distance = self.findClosestTileInFrontAndDistance(enemyBotOptions, myBot)
+                if closestEnemy is None:
+                    continue
+                LOG.debug(f"myBot={myBot}'s closestEnemy={closestEnemy}")
+                LOG.debug(f"enemyBot={closestEnemy}'s all={Lockdown.findClosestTile(botsThatCanInvade, closestEnemy)}")
+                if Lockdown.findClosestTile(botsThatCanInvade, closestEnemy) == myBot:
+                    maxDistanceInOrderToSpawn = 3
+                    maxSpawns = Lockdown.getNumberOfSpawnActionsAvailable(
+                        self.lockdownState.matsRemaining,
+                        self.lockdownState.numRecyclersLeftToBuild
+                    )
+                    LOG.debug(f"using={myBot} to hunt enemy={closestEnemy} that is {distance} away")
+                    self.actionManager.enqueueMove(myBot.units, myBot, closestEnemy)
+                    botsThatCanInvade.remove(myBot)
+                    if distance < maxDistanceInOrderToSpawn and maxSpawns and closestEnemy.units >= myBot.units:
+                        minRequiredToSurvive = max(closestEnemy.units - myBot.units + 1, 1)
+                        spawnAmount = min(minRequiredToSurvive, maxSpawns)
+                        LOG.debug(f"spawning={spawnAmount} to hunt enemy={closestEnemy}")
+                        self.actionManager.enqueueSpawn(spawnAmount, myBot)
+                        self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN * spawnAmount
+                LOG.debug(f"{botsThatCanInvade}")
 
         for unusedBot in botsThatCanInvade:
             self.captureEnemyTiles(unusedBot)
@@ -292,6 +327,20 @@ class Lockdown:
         tree = spatial.KDTree(allTiles)
         distance, index = tree.query([targetTile.x, targetTile.y])
         return tileOptions[index], distance
+
+    def findClosestTileInFrontAndDistance(self, tileOptions: List[Tile], targetTile: Tile) -> Tuple[Optional[Tile], int]:
+        if len(tileOptions) == 0:
+            return None, None
+        # Source: https://stackoverflow.com/questions/10818546/finding-index-of-nearest-point-in-numpy-arrays-of-x-and-y-coordinates
+        # the references in this new list are the same as the old list so updates to
+        # objects in the new list apply to the objects the old list
+        tilesInFront = list(filter(lambda tile: tile.x > targetTile.x if self.gameState.startedOnLeftSide else tile.x < targetTile.x, tileOptions))
+        if not tilesInFront:
+            return None, None
+        allTiles = np.array([[tile.x, tile.y] for tile in tilesInFront])
+        tree = spatial.KDTree(allTiles)
+        distance, index = tree.query([targetTile.x, targetTile.y])
+        return tilesInFront[index], distance
 
     @staticmethod
     def getNumberOfSpawnActionsAvailable(matsRemaining: int, numRecyclersToBuild: int) -> int:

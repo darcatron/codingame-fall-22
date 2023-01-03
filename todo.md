@@ -33,11 +33,15 @@
       * basically a really heavy front line
 
 ### Matush
-1. implement trash talking
-2. Better lockdown
+#### Ideas
+1. Build recyclers spread out on enemy side***
+2. If on an island, just capture the island* 
+    * seed=-2551717726100370400
+3. Better lockdown
    * seed=-8049619562529677000
      * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
-
+4. Better spawning
+   * Spawn more on front-most tiles rather than randomly*
 
 ### Sean
 Better invade
@@ -113,3 +117,4 @@ Phase 2
 12/31/22 15:37 (no changes) - 449 / 1815
 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
+1/2/23 21:35 (only hunt forward) - 
