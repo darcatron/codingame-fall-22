@@ -119,4 +119,4 @@ Phase 2
 12/31/22 15:37 (no changes) - 449 / 1815
 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
-1/3/23 00:17 (only hunt forward) - 
+1/3/23 00:17 (only hunt forward) - 244 / 1825
