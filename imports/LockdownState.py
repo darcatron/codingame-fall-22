@@ -18,7 +18,7 @@ class LockdownState:
         #     e.g seed=-8074968484840114000 by turn 8 it's locked
         for row in gameState.tiles:
             tile = row[self.lockdownCol]
-            if not (tile.isGrass() or tile.recycler):
+            if not tile.isBlocked():
                 return False
         return True
 

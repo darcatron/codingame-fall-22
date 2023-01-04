@@ -20,6 +20,14 @@ class Tile:
     def isGrass(self) -> bool:
         return self.scrapAmount == 0
 
+    # A blocked tile is one that is grass or has a recycler on it or is going to turn to grass this turn
+    # A tile with enemy bots is NOT considered to be blocked
+    def isBlocked(self) -> bool:
+        return self.recycler or self.isGrass() or self.turnsToGrassThisTurn()
+
+    def turnsToGrassThisTurn(self) -> bool:
+        return self.inRangeOfRecycler and self.scrapAmount == 1
+
     def isSameLocation(self, other: 'Tile') -> bool:
         return self.x == other.x and self.y == other.y
 

@@ -38,14 +38,6 @@
    * seed=-8049619562529677000
      * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
 
-
-### Sean
-Better invade
-   * Idea: focus on capturing tiles further out
-     * spawn bots on further out tiles rather than randomly. Also spawn more than 1 to claim more land
-     * hunt forward, not backwards whenever possible
-   * building recyclers strategically on enemy side - reduces # of tiles they can capture
-
 ### Later
 * If adjacent tile to lockdown tile is grass or recycler, it's in a lockdown (LockdownState#L17). We don't need to 
    spawn a defense bot on tiles that are next to grass or recyclers either
@@ -82,6 +74,8 @@ Crazy maps
 * lockdown column
 * enemy bot hunting distance minimum
 * myBotsAdvantageBuffer
+* range to look for reachable enemy tiles for the invade
+* reachability values for opponent / neutral tiles for the invade
 
 Game constraints: 
 12 ≤ width ≤ 24
@@ -97,11 +91,35 @@ Phase 2
   * Prioritize bot building to own more tiles
 
 # Other Tasks
-- implement trash talking
 - become legends
 
+## Sean invade plan
+* find tiles to put recyclers on in enemy territory 
+  * for all MY empty tiles on enemy side of lockdown, filter down to those that:
+    * add as many net-new grass tiles as possible (keep in mind existing recyclers may already be scheduled to grassify some, also take into account scrap amount differences), prioritizing grassification of enemy then neutral then my tiles
+    * don't block MY bots from advancing (better to build them behind, closer to the lockdown col)
+      * to do this look at adjacent tiles (prioritizing up, down, and forward) and count up how many are "blocked" (are grass or will be grass next turn, have too many enemy bots, or have a recycler)
+* (DONE) spawn on MY tiles on enemy side of lockdown that have the most enemy tiles in some adjacent range (e.g. within 3 reachable tiles), filtering out tiles that are on schedule to be grassified
+* (DONE) move bots on enemy side of lockdown to capture more enemy territory
+  * spread out rather than attack one place so we are harder to block
+  * once again, prioritize moving to enemy tiles that have the most enemy tiles in some adjacent range (e.g. within 3 reachable tiles), filtering out tiles that are on schedule to be grassified
+    * can move proportionally to how many of those enemy tiles there are in range 
+    * can also consider neutral tiles secondarily
+
+### Improvements
+* for move, don't include the sourceTile and other adjacentTiles in the reachability tile traversal per adjacentTile (if we wanted that value, we would just choose that adjacentTile)
+* also for move, split up based on how many enemy bots are on/adjacent to the target tiles (prefer splitting if possible to do so without putting our bots in danger)
+* for spawn, come up with some semblance of island detection (and prediction based on where we think they may block us)
+  * then prioritize spawning based on the contents of each island
+    * if we have one tile left on an island, make sure to reinforce it
+    * if the enemy has one tile left on an island, spawn next to it and take it
+    * otherwise, determine where to spawn based on some combo of the size of the island and the bot differential between us and the enemy on the island
+
+### Test losing seeds for better invade
+* 4331125007385936000
+
 ## Arena results
-12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
+12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592 / 2692
 12/19/22 14:54 (initial reclaim) - PROMOTED to Silver League 
 12/23/22 14:23 (no changes) - 1,589 / 1,746
 12/24/22 14:07 (initial invade) - 1,327 / 1754
@@ -113,3 +131,5 @@ Phase 2
 12/31/22 15:37 (no changes) - 449 / 1815
 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
+1/2/23 16:28 (no changes) 539 / 1832
+1/2/23 18:09 (initial sean invade strat) 1633 / 1834
