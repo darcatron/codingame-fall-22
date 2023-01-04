@@ -33,6 +33,9 @@
       * basically a really heavy front line
 
 ### Matush
+CONTINUE HERE -- sort through ideas and remove resolved ones. Then check code and clean up todos. Then decide which 
+idea is best to pursue.
+
 #### Ideas
 BUG 
   - seed=-2675635324638569500 Enemy gets passed lockdown col
@@ -40,29 +43,29 @@ BUG
 1. Island capture
     * if it can't move forward, fight to destroy the island
       * seed=5713223225368061000
-1. Better spawning
-   * seed=1850738959795485400
-   * seed=4573225160173344300
-     * turn 13 should spawn at (8,2) rather than (7,5)
-2. Build recyclers spread out on enemy side***
-   * if frontmost tile is at the edge, build recyclers on owned tiles elsewhere
-     * seed=2016952995790781200 - check build tile's surroundings and score it. enemy tile +1, recycler -1, grass -1 
-       best score gets the build. does this 
-       perform better than a tail of recyclers??
-   * dont build recyclers on tiles if all adjacent are about to get wasted by other recyclers
-     * seed=5856389700867212000 - turn 17 shouldn't build on (8,2)
-3. Better bot utilization
-   * Don't target lockdown tiles if bot is far from it, just wait until next turn for nearby bot to capture it
-     * seed=41677082687474904
-     * seed=-8687848559375048000 - turn 7 (10,1) is used to capture a far tile
-4. If on an island, just capture the island* 
+    * seed=8731928637395273000 
+    * seed=1850738959795485400
+      * would have won if we captured (9, 8) thru (12, 8) island
+    * seed=41677082687474904
+      * turn 21 shouldnt build recycler on (4,5). bot should capture the island
+      * would have tied if it captured
     * seed=-2551717726100370400
     * seed=-7411460117948978000 - would have won if we captured this island
+    * seed=7271542478827317000 - would have won if we captured (11,7) island around turn 24
+2. Build recyclers spread out on enemy side***
+   * seed=-8049619562529677000
+     * bunch of bad recycler placements. more notable one was on bottom row at (7,6) when enemy recyclers were 
+       already placed on the 3 top adjacent tiles.
+3. Better bot utilization
+   * Don't target lockdown tiles if bot is far from it, just wait until next turn for nearby bot to capture it
+     * seed=-8687848559375048000 - turn 7 (10,1) is used to capture a far tile and moves down instead of forward
 5. Better lockdown
    * seed=-8049619562529677000
      * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
    * seed=-9058728574429583000
      * recycler not necessary at (14,9) bc it will become an island
+     * can remove bestLockdownTile if all 4 sides are grass or recycler or (if inrangeofrecycler, must be scraped by 
+       recycler in range -- aka this tile isn't responsible for scraping the adjacent tile)
    * seed=-1912384040002314200 against Guizmol (but should be the same result against anyone)
      * (6,1) recycler isn't necessary
      * oppo gets through lockdown cause we're out of resources
@@ -150,3 +153,4 @@ Phase 2
 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
 1/3/23 00:17 (only hunt forward) - 244 / 1825
+1/3/23 12:00 (improvements - cant remember) - 128 / 1828
