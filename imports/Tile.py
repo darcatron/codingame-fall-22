@@ -26,6 +26,17 @@ class Tile:
     def isAdjacent(self, other: 'Tile') -> bool:
         return abs(self.x - other.x) + abs(self.y - other.y) == 1
 
+    def turnsToGrassThisTurn(self) -> bool:
+        return self.inRangeOfRecycler and self.scrapAmount == 1
+
+    # A blocked tile is one that is grass or has a recycler on it or is going to turn to grass this turn
+    # A tile with enemy bots is NOT considered to be blocked
+    def isBlocked(self) -> bool:
+        return self.recycler or self.isGrass() or self.turnsToGrassThisTurn()
+
+    def hasEnemyUnits(self) -> bool:
+        return self.owner == OPP and self.units > 0
+
     def __hash__(self):
         return hash((self.x, self.y, self.scrapAmount, self.owner, self.units, self.recycler, self.canBuild, self.canSpawn, self.inRangeOfRecycler))
 
