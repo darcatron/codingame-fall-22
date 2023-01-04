@@ -38,7 +38,6 @@ class Lockdown:
         if self.isLocked() or self.hasSpareReclaimBot():
             self.reclaimMySideOfMap()
 
-        # todo: moved this to end so we wouldn't exhaust mats before reclaimin (seed=-8687848559375048000)
         self.useRemainingMatsToEmpowerInvade()
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after empower")
 
@@ -84,9 +83,6 @@ class Lockdown:
             if curLockdownTile.canSpawn and \
                     tileInFrontOfCurLockdownTile.hasEnemyUnits() and \
                     self.isLockdownTileBreachable(curLockdownTile):
-                # todo: if tile is surrounded by blocked tiles, don't spawn
-                #  seed=1475951007224868600
-                #  (14,4) and (15,9) don't need protection
                 self.spawnToProtectLockdownTile(curLockdownTile, tileInFrontOfCurLockdownTile)
             elif self.lockdownState.botOptions and self.shouldCaptureLockdownTile(curLockdownTile):
                 # todo: it's easy to forget to decrement the botOptions. move this into a method so it's easier to maintain state
@@ -169,7 +165,7 @@ class Lockdown:
 
         self.spawnBotsToInvadeIfNecessary(botsThatCanInvade)
 
-        for myBot in botsThatCanInvade:
+        for myBot in copy(botsThatCanInvade):
             edgeTile = self.getEdgeTile(myBot)
             if myBot.x == self.lockdownState.lockdownCol:
                 if myBot.scrapAmount == 1:
@@ -316,7 +312,6 @@ class Lockdown:
             return
 
         if botsThatCanInvade and enemyBotOptions:
-            # todo: verif there aren't other loops that might be borked cause we're mutating the iterable as we loop
             botsThatCanInvadeOriginalSet = copy(botsThatCanInvade)
             maxDistanceInOrderToHunt = 3
             for myBot in botsThatCanInvadeOriginalSet:
@@ -367,7 +362,7 @@ class Lockdown:
 
     def moveBotsOnRecyclerTile(self):
         LOG.debug("== Starting moveBotsOnRecyclerTile")
-        for botOption in self.lockdownState.botOptions:
+        for botOption in copy(self.lockdownState.botOptions):
             if botOption in self.lockdownState.bestRecyclerTiles:
                 LOG.debug(f"moving bot {botOption} forward away from desired recycler location")
                 self.actionManager.enqueueMove(botOption.units, botOption, self.getEdgeTile(botOption))
@@ -636,8 +631,6 @@ class Lockdown:
         return list(filter(lambda tile: any((recyclerTile.isAdjacent(tile) or recyclerTile.isSameLocation(tile)) and recyclerTile.scrapAmount >= tile.scrapAmount for recyclerTile in recyclerTiles), tilesToCheck))
 
     def isLocked(self) -> bool:
-        # todo: if adjacent tile is grass or recycler, it's in a lockdown
-        #     e.g seed=-8074968484840114000 by turn 8 it's locked
         for row in self.gameState.tiles:
             tile = row[self.lockdownState.lockdownCol]
             if not (tile.isGrass() or tile.recycler):

@@ -67,8 +67,8 @@ BUG
      * can remove bestLockdownTile if all 4 sides are grass or recycler or (if inrangeofrecycler, must be scraped by 
        recycler in range -- aka this tile isn't responsible for scraping the adjacent tile)
    * seed=-1912384040002314200 against Guizmol (but should be the same result against anyone)
-     * (6,1) recycler isn't necessary
-     * oppo gets through lockdown cause we're out of resources
+     * (6,1) recycler isn't necessary - this is hard to recognize programmatically
+     * Guizmol gets through lockdown cause we're out of resources
 
 
 unused bot used to capture tile that's too far away
@@ -154,3 +154,5 @@ Phase 2
 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
 1/3/23 00:17 (only hunt forward) - 244 / 1825
 1/3/23 12:00 (improvements - cant remember) - 128 / 1828
+1/4/23 16:13 (improvements - cant remember) - 282 / 1832
+1/4/23 16:37 (spawn improvements, best recycler tile optimization) - 75 / 1834
