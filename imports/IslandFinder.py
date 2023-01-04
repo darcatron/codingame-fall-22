@@ -12,25 +12,26 @@ class IslandFinder:
         LOG.debug(f"IslandFinder - maxCols={self.maxCols} maxRows={self.maxRows}")
 
     def findIslands(self):
-        checkedTiles = []
+        tilesRemainingToCheck = set([tile for row in self.tiles for tile in row if not tile.isBlocked()])
         allIslands: List[List[Tile]] = []
-        for row in self.tiles:
-            for tile in row:
-                toVisit = []
-                # todo: Note: this excludes tiles that turn to grass this turn
-                if not tile.isBlocked() and tile not in checkedTiles:
-                    toVisit.append(tile)
 
-                    curIsland = []
-                    while toVisit:
-                        curTile = toVisit.pop()
-                        if curTile not in curIsland:
-                            curIsland.append(curTile)
-                            checkedTiles.append(curTile)
-                        [toVisit.append(t) for t in self.getAdjacentTiles(curTile) if t not in curIsland]
-                    allIslands.append(curIsland)
+        while len(tilesRemainingToCheck) > 0:
+            startingTile = tilesRemainingToCheck.pop()
+            curIsland = []
+            toVisit = [startingTile]
+            while len(toVisit) > 0:
+                sourceTile = toVisit.pop()
+                curIsland.append(sourceTile)
+                adjacentTiles = self.getAdjacentTiles(sourceTile)
+                for adjacentTile in adjacentTiles:
+                    if adjacentTile in tilesRemainingToCheck:
+                        toVisit.append(adjacentTile)
+                        tilesRemainingToCheck.remove(adjacentTile)
+
+            allIslands.append(curIsland)
 
         return allIslands
+
 
     # Find all tiles adjacent to the source tile, but does not include the source tile itself in the return value
     # Excludes blocked tiles by default, but can use the {includeBlockedTiles} flag to include them
