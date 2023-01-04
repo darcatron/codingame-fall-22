@@ -10,6 +10,7 @@ import random
 
 from imports.ActionManager import ActionManager
 from imports.GameState import GameState
+from imports.IslandFinder import IslandFinder
 from imports.LockdownState import LockdownState
 from imports.ScoredTile import ScoredTile
 from imports.Tile import Tile, ME, OPP
@@ -30,6 +31,8 @@ class Lockdown:
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after placing recyclers")
         self.buildDefensiveBotWall()
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after wall")
+        self.captureIslands()
+        LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after island capture")
         self.invade()
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after invade")
         self.moveBotsOnRecyclerTile()
@@ -155,6 +158,33 @@ class Lockdown:
                not lockdownTile.owner == ME and \
                not lockdownTile.isBlocked() and \
                self.isLockdownTileBreachable(lockdownTile)
+
+    def captureIslands(self) -> None:
+        # todo: tests
+        #   seed=-3543218889899294000 - should capture around turn 30
+
+        if not self.isLocked():
+            return
+        # todo:
+        #  determine where the islands are. only consider those past lockdown
+        checkRange = []
+        for row in self.gameState.tiles:
+            if self.gameState.startedOnLeftSide:
+                checkRange.append(row[self.lockdownState.lockdownCol + 1:])
+            else:
+                checkRange.append(row[:self.lockdownState.lockdownCol])
+        islandFinder = IslandFinder(checkRange)
+        islands = islandFinder.findIslands()
+        for island in islands:
+            LOG.debug(f"Island = {island}")
+
+        # todo:
+        #  for each island
+        #    if there are only our tiles on it
+        #      capture it - run reclaim on the island
+        #      remove all bots that are on the island from the lockdownState.botOptions so no one else uses them
+        #    else
+        #      todo later depending on outcome of first part
 
     def invade(self) -> None:
         LOG.debug("== Starting Invade Steps")
