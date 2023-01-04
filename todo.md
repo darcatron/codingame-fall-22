@@ -33,9 +33,6 @@
       * basically a really heavy front line
 
 ### Matush
-CONTINUE HERE -- sort through ideas and remove resolved ones. Then check code and clean up todos. Then decide which 
-idea is best to pursue.
-
 #### Ideas
 BUG 
   - seed=-2675635324638569500 Enemy gets passed lockdown col
