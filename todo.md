@@ -34,16 +34,43 @@
 
 ### Matush
 #### Ideas
-1. Build recyclers spread out on enemy side***
-   * if frontmost tile is at the edge, build recyclers on owned tiles elsewhere 
-2. If on an island, just capture the island* 
+BUG 
+  - seed=-2675635324638569500 Enemy gets passed lockdown col
+
+1. Island capture
+    * if it can't move forward, fight to destroy the island
+      * seed=5713223225368061000
+1. Better spawning
+   * seed=1850738959795485400
+   * seed=4573225160173344300
+     * turn 13 should spawn at (8,2) rather than (7,5)
+2. Build recyclers spread out on enemy side***
+   * if frontmost tile is at the edge, build recyclers on owned tiles elsewhere
+     * seed=2016952995790781200 - check build tile's surroundings and score it. enemy tile +1, recycler -1, grass -1 
+       best score gets the build. does this 
+       perform better than a tail of recyclers??
+   * dont build recyclers on tiles if all adjacent are about to get wasted by other recyclers
+     * seed=5856389700867212000 - turn 17 shouldn't build on (8,2)
+3. Better bot utilization
+   * Don't target lockdown tiles if bot is far from it, just wait until next turn for nearby bot to capture it
+     * seed=41677082687474904
+     * seed=-8687848559375048000 - turn 7 (10,1) is used to capture a far tile
+4. If on an island, just capture the island* 
     * seed=-2551717726100370400
-3. Better lockdown
+    * seed=-7411460117948978000 - would have won if we captured this island
+5. Better lockdown
    * seed=-8049619562529677000
      * This is locked cause the bottom tiles are green. No need to build recycler at (4,5)
-4. Better spawning
-   * Spawn more on front-most tiles rather than randomly*
-   * Spawn on lockdown tiles where other bots don't yet exist
+   * seed=-9058728574429583000
+     * recycler not necessary at (14,9) bc it will become an island
+   * seed=-1912384040002314200 against Guizmol (but should be the same result against anyone)
+     * (6,1) recycler isn't necessary
+     * oppo gets through lockdown cause we're out of resources
+
+
+unused bot used to capture tile that's too far away
+    * seed=9142638467907253000
+
 
 ### Sean
 Better invade
@@ -82,6 +109,9 @@ findClosestTile needs to account for grass and recycler blockers
 Crazy maps
 * Only one path to get to the other side. Bots end up destroying their own territory.
   * seed=-7202217520983007000
+* We start so close to the center that we can't lockdown and get wrecked
+  * seed=-6390432817551423000
+
 
 
 #### Variables
