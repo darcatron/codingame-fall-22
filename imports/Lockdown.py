@@ -6,7 +6,7 @@ from LOG import LOG
 from copy import copy
 from scipy import spatial
 import numpy as np
-import random
+import time
 
 from imports.ActionManager import ActionManager
 from imports.GameState import GameState
@@ -27,15 +27,34 @@ class Lockdown:
 
     def takeActions(self):
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining at start")
+        tic = time.perf_counter()
         self.tryToPlaceRecyclers()
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.5f} seconds")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after placing recyclers")
+
+        tic = time.perf_counter()
         self.buildDefensiveBotWall()
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.5f} seconds")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after wall")
+
+        tic = time.perf_counter()
         self.captureIslands()
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.5f} seconds")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after island capture")
+
+        tic = time.perf_counter()
         self.invade()
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.5f} seconds")
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining after invade")
+
+        tic = time.perf_counter()
         self.moveBotsOnRecyclerTile()
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.5f} seconds")
 
         # After recyclers are built - reclaim enemy land on my side of the map
         if self.isLocked() or self.hasSpareReclaimBot():
@@ -162,19 +181,25 @@ class Lockdown:
     def captureIslands(self) -> None:
         # todo: tests
         #   seed=-3543218889899294000 - should capture around turn 30
-
+        #   seed=-5148462790593764000
         if not self.isLocked():
             return
         # todo:
         #  determine where the islands are. only consider those past lockdown
+        tic = time.perf_counter()
         checkRange = []
         for row in self.gameState.tiles:
             if self.gameState.startedOnLeftSide:
                 checkRange.append(row[self.lockdownState.lockdownCol + 1:])
             else:
                 checkRange.append(row[:self.lockdownState.lockdownCol])
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.8f} seconds to build minimap")
         islandFinder = IslandFinder(checkRange)
+        tic = time.perf_counter()
         islands = islandFinder.findIslands()
+        toc = time.perf_counter()
+        LOG.debug(f"{toc - tic:0.8f} seconds to find islands")
         for island in islands:
             LOG.debug(f"Island = {island}")
 
@@ -426,9 +451,9 @@ class Lockdown:
             LOG.debug(f"spawning {myTilesOnMySide[0]} to start reclaiming")
             self.lockdownState.matsRemaining -= MATS_COST_TO_SPAWN
 
-        if len(enemyTilesOnMySide) > 0:
+        if enemyTilesOnMySide:
             tilesToClaim = enemyTilesOnMySide
-        elif len(neutralTilesOnMySide) > 0:
+        elif neutralTilesOnMySide:
             tilesToClaim = neutralTilesOnMySide
         else:
             return
@@ -490,7 +515,7 @@ class Lockdown:
     #  Then we spawn where that bot used to be since it's the closest bot, then we'll repeat with the spawned bot next turn, etc.
     @staticmethod
     def findClosestTileAndDistance(tileOptions: List[Tile], targetTile: Tile) -> Tuple[Optional[Tile], int]:
-        if len(tileOptions) == 0:
+        if not tileOptions:
             return None, None
         # Source: https://stackoverflow.com/questions/10818546/finding-index-of-nearest-point-in-numpy-arrays-of-x-and-y-coordinates
         allTiles = np.array([[tile.x, tile.y] for tile in tileOptions])
@@ -499,7 +524,7 @@ class Lockdown:
         return tileOptions[index], distance
 
     def findClosestTileInFrontAndDistance(self, tileOptions: List[Tile], targetTile: Tile) -> Tuple[Optional[Tile], int]:
-        if len(tileOptions) == 0:
+        if not tileOptions:
             return None, None
         # Source: https://stackoverflow.com/questions/10818546/finding-index-of-nearest-point-in-numpy-arrays-of-x-and-y-coordinates
         # the references in this new list are the same as the old list so updates to
@@ -598,7 +623,7 @@ class Lockdown:
         # Remember that a recycler is destroyed when it exhausts the scrap pile of the tile it is on
         # So, we will generally prefer building the recyclers on the tiles that have more scrap than the adjacent tiles above and below it
 
-        mapHeight = len(allTiles)
+        mapHeight = self.gameState.mapHeight
         if mapHeight == 0:
             return []
 
@@ -611,13 +636,13 @@ class Lockdown:
         recyclerTilesSoFarStack: List[List[Tile]] = [[]]
         bestRecyclerComboFound = None
 
-        while len(recyclerTilesSoFarStack) > 0:
+        while recyclerTilesSoFarStack:
             recyclerTilesSoFar = recyclerTilesSoFarStack.pop()
             # These are the tiles that we do not need to worry about blocking (turning to grass), since the recyclers we have so far should take care of them
             grassifiedTiles = Lockdown.getTilesThatRecyclersWillGrassify(nonGrassTilesInColumn, [*ourExistingRecyclersAtTurnStart, *recyclerTilesSoFar])
             # That makes these the ones we do need to block, by turning into grass
             tilesToGrassify = list(set(nonGrassTilesInColumn).difference(set(grassifiedTiles)))
-            if len(tilesToGrassify) == 0:
+            if not tilesToGrassify:
                 # No tiles left to block! We've found a possible recycler combo for the lockdown strat. Let's see if it's the best we've found so far
                 if bestRecyclerComboFound is None or len(bestRecyclerComboFound) > len(recyclerTilesSoFar):
                     bestRecyclerComboFound = recyclerTilesSoFar
@@ -627,7 +652,7 @@ class Lockdown:
                 firstTileToGrassify = min(tilesToGrassify, key=lambda tile: tile.y)
                 recyclerTilesSoFarStack.append([*recyclerTilesSoFar, firstTileToGrassify])
                 secondTileArr = list(filter(lambda tile: tile.y == firstTileToGrassify.y + 1, tilesToGrassify))
-                if len(secondTileArr) > 0:
+                if secondTileArr:
                     recyclerTilesSoFarStack.append([*recyclerTilesSoFar, secondTileArr[0]])
 
         return [] if bestRecyclerComboFound is None else [t for t in bestRecyclerComboFound if not self.isLockdownRecyclerOnlyEffectingGrass(t)]
