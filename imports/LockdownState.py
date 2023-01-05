@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Set
 
 from imports.Tile import Tile
 
@@ -12,3 +12,4 @@ class LockdownState:
     matsRemaining: int
     botOptions: List[Tile]
     islandTiles: List[Tile]
+    recyclerPlacements: Set[Tile]

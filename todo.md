@@ -160,5 +160,10 @@ Phase 2
 1/5/23 00:22 (remove minimap island logic, and add island capture logic) - 30 / 1831
 1/5/23 00:52 (update tile capture logic to try to pick the closest bot to the target tile) - 348 / 1831
 1/5/23 01:05 (fix timeouts from the tile capture logic with some late night hacking, ow my brain) - 174 / 1831
-1/5/23 TODO (revert the last two updates) - 
+1/5/23 01:27 (revert the last two updates) - 79 / 1831
+1/5/23 01:49 (push out the lockdown column by one and do a better job defending it) - 18 / 1830
+1/5/23 02:17 (make sure to update botOptions for units used in defending the bot wall) - 23 / 1829
+1/5/23 02:36 (make defensive bot wall building take into account the recyclers that we are building this turn) - 71 / 1827 
+1/5/23 TODO (prioritize building recyclers that are closest to the enemy first, and change lockdown column logic to only bump by one if the map height is large) -
+1/5/23 TODO ()
 
