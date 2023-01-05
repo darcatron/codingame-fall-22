@@ -154,3 +154,11 @@ Phase 2
 1/3/23 12:00 (improvements - cant remember) - 128 / 1828
 1/4/23 16:13 (improvements - cant remember) - 282 / 1832
 1/4/23 16:37 (spawn improvements, best recycler tile optimization) - 75 / 1834
+1/4/23 23:06 (sean takes over from 'sean help') - 172 / 1830
+1/4/23 23:25 (sean makes minor updates to the spawn/build avoidance on owned islands) - 218 / 1830
+1/5/23 00:07 (invade tries capturing neutral tiles if there aren't enemy tiles to capture) - 193 / 1828
+1/5/23 00:22 (remove minimap island logic, and add island capture logic) - 30 / 1831
+1/5/23 00:52 (update tile capture logic to try to pick the closest bot to the target tile) - 348 / 1831
+1/5/23 01:05 (fix timeouts from the tile capture logic with some late night hacking, ow my brain) - 174 / 1831
+1/5/23 TODO (revert the last two updates) - 
+

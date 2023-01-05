@@ -23,6 +23,6 @@ while True:
         gameState.startedOnLeftSide = startedOnLeftSide
 
     lockdown = Lockdown(gameState)
-    lockdown.takeActions()
+    lockdown.takeActions(turnNumber)
 
     turnNumber += 1
