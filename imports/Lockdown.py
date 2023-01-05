@@ -13,7 +13,7 @@ from imports.GameState import GameState
 from imports.IslandFinder import IslandFinder
 from imports.LockdownState import LockdownState
 from imports.ScoredTile import ScoredTile
-from imports.Tile import Tile, ME, OPP
+from imports.Tile import Tile, ME, OPP, NONE
 
 from Economy import MATS_COST_TO_BUILD, MATS_COST_TO_SPAWN, MATS_INCOME_PER_TURN
 
@@ -23,7 +23,7 @@ class Lockdown:
         self.gameState = gameState
         bestRecyclerTiles = self.getTilesForRecyclersToBlockColumn(gameState.tiles, gameState.myRecyclers, lockdownColumn)
         self.actionManager = ActionManager()
-        self.lockdownState = LockdownState(lockdownColumn, bestRecyclerTiles, len(bestRecyclerTiles), gameState.myMats, copy(gameState.myUnits))
+        self.lockdownState = LockdownState(lockdownColumn, bestRecyclerTiles, len(bestRecyclerTiles), gameState.myMats, copy(gameState.myUnits), [])
 
     def takeActions(self):
         LOG.debug(f"{self.lockdownState.matsRemaining} mats remaining at start")
@@ -182,10 +182,10 @@ class Lockdown:
         # todo: tests
         #   seed=-3543218889899294000 - should capture around turn 30
         #   seed=-5148462790593764000
-        if not self.isLocked():
-            return
-        # todo:
-        #  determine where the islands are. only consider those past lockdown
+        # if not self.isLocked():
+        #     LOG.debug(f"=== Not locked. No island capture")
+        #     return
+        LOG.debug(f"=== Starting island capture")
         tic = time.perf_counter()
         checkRange = []
         for row in self.gameState.tiles:
@@ -200,13 +200,28 @@ class Lockdown:
         islands = islandFinder.findIslands()
         toc = time.perf_counter()
         LOG.debug(f"{toc - tic:0.8f} seconds to find islands")
+        captureableIslands = []
         for island in islands:
-            LOG.debug(f"Island = {island}")
+            isOurIsland = True
+            hasNeutralTile = False
+            for tile in island:
+                # todo (optimization): can combine this with island finder
+                if tile.owner == OPP:
+                    isOurIsland = False
+                    break
+                if tile.owner == NONE:
+                    hasNeutralTile = True
+            if isOurIsland:
+                if hasNeutralTile:
+                    captureableIslands.append(island)
+                self.lockdownState.islandTiles += island
 
+        for island in captureableIslands:
+            LOG.debug(f"reclaiming island = {island}")
         # todo:
         #  for each island
         #    if there are only our tiles on it
-        #      capture it - run reclaim on the island
+        #      run reclaim on the island
         #      remove all bots that are on the island from the lockdownState.botOptions so no one else uses them
         #    else
         #      todo later depending on outcome of first part
@@ -293,14 +308,17 @@ class Lockdown:
             if Lockdown.isPassedColumn(self.gameState.startedOnLeftSide, minCol, tile.x) and \
                     tile.canBuild and \
                     not self.isSurroundedByGrass(tile) and \
-                    not tile.turnsToGrassThisTurn():
+                    not tile.turnsToGrassThisTurn() and \
+                    tile not in self.lockdownState.islandTiles:
                 buildLocationOptions.append(tile)
         return buildLocationOptions
 
     def getEmpowerSpawnOptions(self) -> List[ScoredTile]:
         spawnLocationOptions = []
         for tile in self.gameState.myTiles:
-            if Lockdown.isPassedColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol, tile.x) and not self.isSurroundedByGrass(tile):
+            if Lockdown.isPassedColumn(self.gameState.startedOnLeftSide, self.lockdownState.lockdownCol, tile.x) and \
+                    not self.isSurroundedByGrass(tile) and \
+                    tile not in self.lockdownState.islandTiles:
                 if tile.inRangeOfRecycler:
                     if tile.scrapAmount > 1:
                         spawnLocationOptions.append(self.scoreSpawnTile(tile))
@@ -409,11 +427,6 @@ class Lockdown:
                 LOG.debug(f"using={myBot} to capture tile={closestEmptyEnemyTile} that is {distance} away")
                 self.actionManager.enqueueMove(1, myBot, closestEmptyEnemyTile)
                 enemyEmptyTileOptions.remove(closestEmptyEnemyTile)
-    #
-    # def moveForward(self, botsThatCanInvade: List[Tile]):
-    #     for myBot in botsThatCanInvade:
-    #         LOG.debug(f"moving {myBot} forward")
-    #         self.actionManager.enqueueMove(myBot.units, myBot, self.getEdgeTile(myBot))
 
     def moveBotsOnRecyclerTile(self):
         LOG.debug("== Starting moveBotsOnRecyclerTile")

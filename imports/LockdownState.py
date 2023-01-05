@@ -12,3 +12,4 @@ class LockdownState:
     numRecyclersLeftToBuild: int
     matsRemaining: int
     botOptions: List[Tile]
+    islandTiles: List[Tile]
