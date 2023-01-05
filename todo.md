@@ -138,35 +138,35 @@ Phase 2
 - become legends
 
 ## Arena results
-12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
-12/19/22 14:54 (initial reclaim) - PROMOTED to Silver League 
-12/23/22 14:23 (no changes) - 1,589 / 1,746
-12/24/22 14:07 (initial invade) - 1,327 / 1754
-12/24/22 17:27 (lots more added to invade) - 931 / 1753
-12/25/22 9:53 (no change) - 879 / 1746
-12/25/22 14:40 (committed latest) - 818 1,744
-12/25/22 15:25 (wall and hunting++) - 459 / 1747
-12/25/22 15:40 (cleaned up and committed latest) - 529 / 1746
-12/31/22 15:37 (no changes) - 449 / 1815
-1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
-1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
-1/3/23 00:17 (only hunt forward) - 244 / 1825
-1/3/23 12:00 (improvements - cant remember) - 128 / 1828
-1/4/23 16:13 (improvements - cant remember) - 282 / 1832
-1/4/23 16:37 (spawn improvements, best recycler tile optimization) - 75 / 1834
-1/4/23 23:06 (sean takes over from 'sean help') - 172 / 1830
-1/4/23 23:25 (sean makes minor updates to the spawn/build avoidance on owned islands) - 218 / 1830
-1/5/23 00:07 (invade tries capturing neutral tiles if there aren't enemy tiles to capture) - 193 / 1828
-1/5/23 00:22 (remove minimap island logic, and add island capture logic) - 30 / 1831
-1/5/23 00:52 (update tile capture logic to try to pick the closest bot to the target tile) - 348 / 1831
-1/5/23 01:05 (fix timeouts from the tile capture logic with some late night hacking, ow my brain) - 174 / 1831
-1/5/23 01:27 (revert the last two updates) - 79 / 1831
-1/5/23 01:49 (push out the lockdown column by one and do a better job defending it) - 18 / 1830
-1/5/23 02:17 (make sure to update botOptions for units used in defending the bot wall) - 23 / 1829
-1/5/23 02:36 (make defensive bot wall building take into account the recyclers that we are building this turn) - 71 / 1827 
-1/5/23 02:50 (prioritize building recyclers that are closest to the enemy first, and change lockdown column logic to not bump by one if the map height is large) - 97 / 1827 
-1/5/23 03:05 (build bot wall first before building recyclers to prioritize blocking enemies if possible) - 162 / 1827
-1/5/23 03:22 (revert last change) - 16 / 1827
-1/5/23 03:45 (try bumping lockdown column by another one, up to a limit though) - 90 / 1826
-1/5/23 final (revert last change) - 15 / 1826
+* 12/19/22 09:20 (initial lockdown strat) - PROMOTED to Bronze League rank 1592/2692
+* 12/19/22 14:54 (initial reclaim) - PROMOTED to Silver League 
+* 12/23/22 14:23 (no changes) - 1,589 / 1,746
+* 12/24/22 14:07 (initial invade) - 1,327 / 1754
+* 12/24/22 17:27 (lots more added to invade) - 931 / 1753
+* 12/25/22 9:53 (no change) - 879 / 1746
+* 12/25/22 14:40 (committed latest) - 818 1,744
+* 12/25/22 15:25 (wall and hunting++) - 459 / 1747
+* 12/25/22 15:40 (cleaned up and committed latest) - 529 / 1746
+* 12/31/22 15:37 (no changes) - 449 / 1815
+* 1/2/23 11:14 (cleanup - no functional changes) - 675 / 1834
+* 1/2/23 11:29 (fix defensive wall bug) - 518 / 1835
+* 1/3/23 00:17 (only hunt forward) - 244 / 1825
+* 1/3/23 12:00 (improvements - cant remember) - 128 / 1828
+* 1/4/23 16:13 (improvements - cant remember) - 282 / 1832
+* 1/4/23 16:37 (spawn improvements, best recycler tile optimization) - 75 / 1834
+* 1/4/23 23:06 (sean takes over from 'sean help') - 172 / 1830
+* 1/4/23 23:25 (sean makes minor updates to the spawn/build avoidance on owned islands) - 218 / 1830
+* 1/5/23 00:07 (invade tries capturing neutral tiles if there aren't enemy tiles to capture) - 193 / 1828
+* 1/5/23 00:22 (remove minimap island logic, and add island capture logic) - 30 / 1831
+* 1/5/23 00:52 (update tile capture logic to try to pick the closest bot to the target tile) - 348 / 1831
+* 1/5/23 01:05 (fix timeouts from the tile capture logic with some late night hacking, ow my brain) - 174 / 1831
+* 1/5/23 01:27 (revert the last two updates) - 79 / 1831
+* 1/5/23 01:49 (push out the lockdown column by one and do a better job defending it) - 18 / 1830
+* 1/5/23 02:17 (make sure to update botOptions for units used in defending the bot wall) - 23 / 1829
+* 1/5/23 02:36 (make defensive bot wall building take into account the recyclers that we are building this turn) - 71 / 1827 
+* 1/5/23 02:50 (prioritize building recyclers that are closest to the enemy first, and change lockdown column logic to not bump by one if the map height is large) - 97 / 1827 
+* 1/5/23 03:05 (build bot wall first before building recyclers to prioritize blocking enemies if possible) - 162 / 1827
+* 1/5/23 03:22 (revert last change) - 16 / 1827
+* 1/5/23 03:45 (try bumping lockdown column by another one, up to a limit though) - 90 / 1826
+* 1/5/23 final (revert last change) - 15 / 1826
 
