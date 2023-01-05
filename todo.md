@@ -164,6 +164,9 @@ Phase 2
 1/5/23 01:49 (push out the lockdown column by one and do a better job defending it) - 18 / 1830
 1/5/23 02:17 (make sure to update botOptions for units used in defending the bot wall) - 23 / 1829
 1/5/23 02:36 (make defensive bot wall building take into account the recyclers that we are building this turn) - 71 / 1827 
-1/5/23 TODO (prioritize building recyclers that are closest to the enemy first, and change lockdown column logic to only bump by one if the map height is large) -
-1/5/23 TODO ()
+1/5/23 02:50 (prioritize building recyclers that are closest to the enemy first, and change lockdown column logic to not bump by one if the map height is large) - 97 / 1827 
+1/5/23 03:05 (build bot wall first before building recyclers to prioritize blocking enemies if possible) - 162 / 1827
+1/5/23 03:22 (revert last change) - 16 / 1827
+1/5/23 03:45 (try bumping lockdown column by another one, up to a limit though) - 90 / 1826
+1/5/23 final (revert last change) - 15 / 1826
 
